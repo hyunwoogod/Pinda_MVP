@@ -39,9 +39,9 @@ class PindaApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
-        // ▼▼▼ 이 줄을 추가하세요! (반짝임 효과 제거 -> 오류 해결) ▼▼▼
+        /* ▼▼▼ 이 줄을 추가하세요! (반짝임 효과 제거 -> 오류 해결) ▼▼▼*/
         splashFactory: InkRipple.splashFactory,
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
         fontFamily: 'Pretendard',
       ),
       home: MainScreen(key: globalMainKey),
