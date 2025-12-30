@@ -75,12 +75,12 @@ class _NaverMapWebState extends State<NaverMapWeb> {
     final clickHandler = "window.onMarkerTap('$id'); event.stopPropagation();";
 
     if (isMyLocation) {
-      return '<div onclick="$clickHandler" ontouchend="$clickHandler" style="cursor:pointer;width:40px;height:40px;pointer-events:auto;display:flex;justify-content:center;align-items:center;">' +
+      return '<div onclick="$clickHandler" style="z-index:2000;cursor:pointer;width:40px;height:40px;pointer-events:auto;display:flex;justify-content:center;align-items:center;">' +
           '<div style="width:40px;height:40px;background:rgba(66, 133, 244, 0.3);border-radius:50%;position:absolute;"></div>' +
           '<div style="width:20px;height:20px;background:#4285F4;border:2px solid #fff;border-radius:50%;position:relative;z-index:1;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>' +
           '</div>';
     } else {
-      return '<div onclick="$clickHandler" ontouchend="$clickHandler" style="cursor:pointer;width:30px;height:42px;pointer-events:auto;"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
+      return '<div onclick="$clickHandler" style="z-index:2000;cursor:pointer;width:30px;height:42px;pointer-events:auto;"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
     }
   }
 
@@ -230,6 +230,7 @@ class _NaverMapWebState extends State<NaverMapWeb> {
       final options = JSObject();
       options['position'] = position;
       options['map'] = _map;
+      options['clickable'] = true.toJS; // 클릭 가능 명시
 
       // 마커 아이콘 (빨간색)
       // 마커 아이콘
