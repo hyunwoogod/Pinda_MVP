@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/user_model.dart';
 import 'login_screen.dart';
@@ -97,7 +97,7 @@ class _ApplyViewState extends State<ApplyView> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.lightBlue,
+                  color: Colors.red,
                 ),
               ),
               const SizedBox(height: 40),

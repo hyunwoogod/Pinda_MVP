@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../widgets/naver_map_web.dart';
 import '../models/user_model.dart';
 import 'login_screen.dart';
+import '../state/question_state.dart';
+import '../main.dart'; // MainScreenState 접근용
 
 // --- 2. 질문 뷰 (Question View) ---
 class QuestionView extends StatefulWidget {
@@ -20,7 +22,16 @@ class _QuestionViewState extends State<QuestionView> {
   NaverMapWebController? _mapController;
   double _selectedLat = 37.5973;
   double _selectedLng = 127.0583;
-  bool _isMapInteractive = false;
+
+  // 카테고리
+  String _selectedCategory = '';
+  final List<String> _categories = [
+    '재고/상품',
+    '분위기/소음',
+    '시설/주차',
+    '날씨/현장',
+    '사건/목격',
+  ];
 
   @override
   void dispose() {
@@ -31,7 +42,7 @@ class _QuestionViewState extends State<QuestionView> {
   }
 
   void _onMapTap(double lat, double lng) {
-    if (!_isMapInteractive) return;
+    // if (!_isMapInteractive) return; // Removed interactive check
 
     setState(() {
       _selectedLat = lat;
@@ -90,16 +101,37 @@ class _QuestionViewState extends State<QuestionView> {
               children: [
                 TextField(
                   controller: searchController,
+                  autofocus: true,
                   decoration: const InputDecoration(
                     hintText: "주소 입력",
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.search),
                   ),
                   onSubmitted: (value) async {
+                    if (value.isEmpty) return;
+
                     final locations = await _fetchLocations(value);
-                    setDialogState(() {
-                      results = locations;
-                    });
+                    if (locations.isNotEmpty) {
+                      // 첫 번째 결과 자동 선택
+                      final item = locations.first;
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _selectLocation(
+                          item.latitude,
+                          item.longitude,
+                          item.address,
+                        );
+                      }
+                    } else {
+                      setDialogState(() {
+                        results = [];
+                      });
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("검색 결과가 없습니다.")),
+                        );
+                      }
+                    }
                   },
                 ),
                 const SizedBox(height: 10),
@@ -187,6 +219,37 @@ class _QuestionViewState extends State<QuestionView> {
                   ),
                 ),
                 const SizedBox(height: 20),
+
+                // 카테고리 선택
+                const Text(
+                  "카테고리 선택",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: _categories.map((category) {
+                    final isSelected = _selectedCategory == category;
+                    return ChoiceChip(
+                      label: Text(category),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedCategory = selected ? category : '';
+                        });
+                      },
+                      selectedColor: Colors.red.shade100,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.red.shade900 : Colors.black,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
                 SizedBox(
                   height: 150,
                   child: TextField(
@@ -216,7 +279,7 @@ class _QuestionViewState extends State<QuestionView> {
                         hintText: "터치하여 장소를 검색하세요",
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.location_on),
-                        suffixIcon: Icon(Icons.search, color: Colors.blue),
+                        suffixIcon: Icon(Icons.search, color: Colors.red),
                       ),
                     ),
                   ),
@@ -226,78 +289,28 @@ class _QuestionViewState extends State<QuestionView> {
                 // 지도 미리보기
                 Container(
                   height: 300,
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: Stack(
-                      children: [
-                        SizedBox.expand(
-                          child: NaverMapWeb(
-                            latitude: _selectedLat,
-                            longitude: _selectedLng,
-                            zoom: 16,
-                            markers: [
-                              NaverMapMarker(
-                                id: 'selected',
-                                latitude: _selectedLat,
-                                longitude: _selectedLng,
-                              ),
-                            ],
-                            onMapReady: (controller) {
-                              _mapController = controller;
-                            },
-                            onMapTapped: _isMapInteractive ? _onMapTap : null,
-                          ),
+                    child: NaverMapWeb(
+                      latitude: _selectedLat,
+                      longitude: _selectedLng,
+                      zoom: 16,
+                      markers: [
+                        NaverMapMarker(
+                          id: 'selected',
+                          latitude: _selectedLat,
+                          longitude: _selectedLng,
                         ),
-                        if (!_isMapInteractive)
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isMapInteractive = true;
-                              });
-                            },
-                            behavior: HitTestBehavior.translucent,
-                            child: Container(
-                              width: double.infinity,
-                              height: double.infinity,
-                              color: Colors.black.withOpacity(0.1),
-                              alignment: Alignment.center,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.9),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black26,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.touch_app, size: 24),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "지도를 조작하려면 터치하세요",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
                       ],
+                      onMapReady: (controller) {
+                        _mapController = controller;
+                      },
+                      onMapTapped: _onMapTap,
                     ),
                   ),
                 ),
@@ -317,12 +330,32 @@ class _QuestionViewState extends State<QuestionView> {
                         );
                       } else {
                         if (_titleController.text.isEmpty ||
-                            _contentController.text.isEmpty) {
+                            _contentController.text.isEmpty ||
+                            _selectedCategory.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("제목과 내용을 입력해주세요.")),
+                            const SnackBar(
+                                content: Text("제목, 내용, 카테고리를 모두 입력해주세요.")),
                           );
                           return;
                         }
+
+                        // 질문 등록
+                        final newQuestion = Question(
+                          id: "q_${DateTime.now().millisecondsSinceEpoch}",
+                          title: _titleController.text,
+                          content: _contentController.text,
+                          category: _selectedCategory,
+                          latitude: _selectedLat,
+                          longitude: _selectedLng,
+                          createdAt: DateTime.now(),
+                        );
+                        QuestionState().addQuestion(newQuestion);
+
+                        // 지도 탭으로 이동 (MainScreen의 0번 탭)
+                        context
+                            .findAncestorStateOfType<MainScreenState>()
+                            ?.changeTab(0);
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text("질문이 등록되었습니다!")),
                         );
@@ -331,12 +364,12 @@ class _QuestionViewState extends State<QuestionView> {
                           _titleController.clear();
                           _contentController.clear();
                           _locationController.clear();
+                          _selectedCategory = ''; // 카테고리 초기화
                         });
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          user == null ? Colors.grey : Colors.lightBlue,
+                      backgroundColor: user == null ? Colors.grey : Colors.red,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

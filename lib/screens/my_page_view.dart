@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../widgets/social_login_buttons.dart';
 
@@ -20,7 +20,7 @@ class MyPageView extends StatelessWidget {
                 const Icon(
                   Icons.location_on, // Pinda PIN
                   size: 80,
-                  color: Colors.lightBlue,
+                  color: Colors.red,
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -33,13 +33,16 @@ class MyPageView extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  "지금 여기, 궁금한 곳의 모든 것",
+                  "지금 거기, 궁금한 곳의 모든 것",
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 const SizedBox(height: 60),
 
                 // 공통 소셜 로그인 버튼 위젯 (로그인 성공 시 화면 유지 -> 즉시 프로필 전환됨)
                 const SocialLoginButtons(),
+                
+                const SizedBox(height: 40),
+                const Text("문의: ecoguy0818@gmail.com", style: TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           );
@@ -56,7 +59,7 @@ class MyPageView extends StatelessWidget {
                 children: [
                   const CircleAvatar(
                     radius: 40,
-                    backgroundColor: Colors.lightBlue,
+                    backgroundColor: Colors.red,
                     child: Icon(Icons.person, size: 50, color: Colors.white),
                   ),
                   const SizedBox(width: 20),
@@ -73,7 +76,7 @@ class MyPageView extends StatelessWidget {
                       Text(
                         "LV.${user.level} 동네 보안관",
                         style: const TextStyle(
-                          color: Colors.lightBlue,
+                          color: Colors.red,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -90,7 +93,7 @@ class MyPageView extends StatelessWidget {
               const LinearProgressIndicator(
                 value: 0.7,
                 backgroundColor: Colors.grey,
-                color: Colors.lightBlue,
+                color: Colors.red,
                 minHeight: 10,
               ),
               const SizedBox(height: 30),
@@ -116,7 +119,7 @@ class MyPageView extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: Colors.lightBlue[50],
+                  color: Colors.red[50],
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
@@ -127,7 +130,7 @@ class MyPageView extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.bold,
-                        color: Colors.lightBlue,
+                        color: Colors.red,
                       ),
                     ),
                     const Text(
@@ -148,6 +151,8 @@ class MyPageView extends StatelessWidget {
                   child: const Text("로그아웃"),
                 ),
               ),
+              const SizedBox(height: 20),
+              const Center(child: Text("문의: ecoguy0818@gmail.com", style: TextStyle(color: Colors.grey, fontSize: 12))),
               const SizedBox(height: 20),
             ],
           ),

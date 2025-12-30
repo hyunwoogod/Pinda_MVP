@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+
+const _markerHtml =
+    '<div style="cursor:pointer;width:30px;height:42px;"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
 
 /// 네이버 지도 JS API를 Flutter Web에서 사용하기 위한 위젯
 class NaverMapWeb extends StatefulWidget {
@@ -32,7 +36,6 @@ class _NaverMapWebState extends State<NaverMapWeb> {
   late String _viewId;
   JSObject? _map;
   final List<JSObject> _jsMarkers = [];
-  bool _isMapReady = false;
 
   @override
   void initState() {
@@ -98,7 +101,6 @@ class _NaverMapWebState extends State<NaverMapWeb> {
       ) as JSObject;
 
       if (_map != null) {
-        _isMapReady = true;
         _addClickListener();
         _addMarkers();
 
@@ -124,15 +126,22 @@ class _NaverMapWebState extends State<NaverMapWeb> {
       // 클릭 이벤트 핸들러
       void onClickHandler(JSObject e) {
         try {
-          final coord = e['coord'] as JSObject;
-          // lat(), lng() 메서드 호출
-          final latFn = coord['lat'] as JSFunction;
-          final lngFn = coord['lng'] as JSFunction;
-          final lat = (latFn.callAsFunction() as JSNumber).toDartDouble;
-          final lng = (lngFn.callAsFunction() as JSNumber).toDartDouble;
-          widget.onMapTapped?.call(lat, lng);
-        } catch (e) {
-          debugPrint('클릭 이벤트 처리 오류: $e');
+          final getCoordFn = globalContext['getNaverCoord'] as JSFunction?;
+          if (getCoordFn != null) {
+            final jsonStr =
+                (getCoordFn.callAsFunction(null, e) as JSString?)?.toDart;
+            if (jsonStr != null) {
+              final Map<String, dynamic> coord = jsonDecode(jsonStr);
+              final lat = (coord['lat'] as num).toDouble();
+              final lng = (coord['lng'] as num).toDouble();
+
+              if (lat != 0 && lng != 0) {
+                widget.onMapTapped?.call(lat, lng);
+              }
+            }
+          }
+        } catch (err) {
+          debugPrint('클릭 이벤트 처리 오류: $err');
         }
       }
 
@@ -181,6 +190,27 @@ class _NaverMapWebState extends State<NaverMapWeb> {
       final options = JSObject();
       options['position'] = position;
       options['map'] = _map;
+
+      // 마커 아이콘 (빨간색)
+      final iconConfig = JSObject();
+      iconConfig['content'] = _markerHtml.toJS;
+      iconConfig['size'] =
+          (maps['Size'] as JSFunction).callAsConstructor(30.toJS, 42.toJS);
+      iconConfig['anchor'] =
+          (maps['Point'] as JSFunction).callAsConstructor(15.toJS, 42.toJS);
+      options['icon'] = iconConfig;
+
+      if (marker.title != null) {
+        options['title'] = marker.title!.toJS;
+      }
+
+      if (marker.captionText != null) {
+        final caption = JSObject();
+        caption['text'] = marker.captionText!.toJS;
+        // 텍스트 색상 및 정렬 등 추가 옵션 가능
+        caption['align'] = 1.toJS; // Bottom
+        options['caption'] = caption;
+      }
 
       // 마커 생성
       final jsMarker = markerConstructor.callAsConstructor(options) as JSObject;
@@ -289,6 +319,7 @@ class NaverMapMarker {
   final double latitude;
   final double longitude;
   final String? title;
+  final String? captionText;
   final VoidCallback? onTap;
 
   const NaverMapMarker({
@@ -296,6 +327,7 @@ class NaverMapMarker {
     required this.latitude,
     required this.longitude,
     this.title,
+    this.captionText,
     this.onTap,
   });
 }
@@ -307,53 +339,24 @@ class NaverGeocodingService {
     final completer = Completer<List<NaverGeocodingResult>>();
 
     try {
-      final naver = globalContext['naver'] as JSObject?;
-      if (naver == null) {
-        debugPrint('네이버 지도 SDK가 로드되지 않았습니다.');
+      final naverGeocodeFn = globalContext['naverGeocode'] as JSFunction?;
+      if (naverGeocodeFn == null) {
+        debugPrint('naverGeocode 함수가 없습니다.');
         return [];
       }
 
-      final maps = naver['maps'] as JSObject;
-      final service = maps['Service'] as JSObject;
-      final geocodeFn = service['geocode'] as JSFunction;
-
-      // 옵션 객체 생성
-      final options = JSObject();
-      options['query'] = query.toJS;
-
-      // 콜백 함수
-      void callback(JSNumber status, JSObject response) {
+      // 성공 콜백
+      void onSuccess(JSString jsonResult) {
         try {
-          final results = <NaverGeocodingResult>[];
-
-          // response.v2.addresses 배열 파싱
-          final v2 = response['v2'] as JSObject?;
-          if (v2 != null) {
-            final addresses = v2['addresses'] as JSArray?;
-            if (addresses != null) {
-              final dartAddresses = addresses.toDart;
-              for (int i = 0; i < dartAddresses.length; i++) {
-                final addr = dartAddresses[i] as JSObject;
-                final roadAddress =
-                    (addr['roadAddress'] as JSString?)?.toDart ?? '';
-                final jibunAddress =
-                    (addr['jibunAddress'] as JSString?)?.toDart ?? '';
-                final x =
-                    double.tryParse((addr['x'] as JSString?)?.toDart ?? '0') ??
-                        0;
-                final y =
-                    double.tryParse((addr['y'] as JSString?)?.toDart ?? '0') ??
-                        0;
-
-                results.add(NaverGeocodingResult(
-                  address: roadAddress.isNotEmpty ? roadAddress : jibunAddress,
-                  latitude: y,
-                  longitude: x,
-                ));
-              }
-            }
-          }
-
+          final jsonString = jsonResult.toDart;
+          final List<dynamic> data = jsonDecode(jsonString);
+          final results = data
+              .map((item) => NaverGeocodingResult(
+                    address: item['address'] ?? '',
+                    latitude: (item['latitude'] ?? 0).toDouble(),
+                    longitude: (item['longitude'] ?? 0).toDouble(),
+                  ))
+              .toList();
           completer.complete(results);
         } catch (e) {
           debugPrint('지오코딩 결과 파싱 오류: $e');
@@ -361,9 +364,16 @@ class NaverGeocodingService {
         }
       }
 
-      geocodeFn.callAsFunction(null, options, callback.toJS);
+      // 실패 콜백
+      void onError(JSString errorMsg) {
+        debugPrint('지오코딩 오류: ${errorMsg.toDart}');
+        completer.complete([]);
+      }
+
+      naverGeocodeFn.callAsFunction(
+          null, query.toJS, onSuccess.toJS, onError.toJS);
     } catch (e) {
-      debugPrint('지오코딩 오류: $e');
+      debugPrint('지오코딩 호출 오류: $e');
       completer.complete([]);
     }
 
@@ -375,50 +385,29 @@ class NaverGeocodingService {
     final completer = Completer<String?>();
 
     try {
-      final naver = globalContext['naver'] as JSObject?;
-      if (naver == null) {
-        debugPrint('네이버 지도 SDK가 로드되지 않았습니다.');
+      final naverReverseGeocodeFn =
+          globalContext['naverReverseGeocode'] as JSFunction?;
+      if (naverReverseGeocodeFn == null) {
+        debugPrint('naverReverseGeocode 함수가 없습니다.');
         return null;
       }
 
-      final maps = naver['maps'] as JSObject;
-      final service = maps['Service'] as JSObject;
-      final reverseGeocodeFn = service['reverseGeocode'] as JSFunction;
-      final latLngConstructor = maps['LatLng'] as JSFunction;
-
-      // 좌표 생성
-      final coord =
-          latLngConstructor.callAsConstructor(lat.toJS, lng.toJS) as JSObject;
-
-      // 옵션 객체 생성
-      final options = JSObject();
-      options['coords'] = coord;
-      options['orders'] = 'roadaddr,addr'.toJS;
-
-      // 콜백 함수
-      void callback(JSNumber status, JSObject response) {
-        try {
-          final v2 = response['v2'] as JSObject?;
-          if (v2 != null) {
-            final address = v2['address'] as JSObject?;
-            if (address != null) {
-              final roadAddress = (address['roadAddress'] as JSString?)?.toDart;
-              final jibunAddress =
-                  (address['jibunAddress'] as JSString?)?.toDart;
-              completer.complete(roadAddress ?? jibunAddress);
-              return;
-            }
-          }
-          completer.complete(null);
-        } catch (e) {
-          debugPrint('역지오코딩 결과 파싱 오류: $e');
-          completer.complete(null);
-        }
+      // 성공 콜백
+      void onSuccess(JSString result) {
+        final address = result.toDart;
+        completer.complete(address.isNotEmpty ? address : null);
       }
 
-      reverseGeocodeFn.callAsFunction(null, options, callback.toJS);
+      // 실패 콜백
+      void onError(JSString errorMsg) {
+        debugPrint('역지오코딩 오류: ${errorMsg.toDart}');
+        completer.complete(null);
+      }
+
+      naverReverseGeocodeFn.callAsFunction(
+          null, lat.toJS, lng.toJS, onSuccess.toJS, onError.toJS);
     } catch (e) {
-      debugPrint('역지오코딩 오류: $e');
+      debugPrint('역지오코딩 호출 오류: $e');
       completer.complete(null);
     }
 

@@ -19,13 +19,13 @@ class _CameraScreenState extends State<CameraScreen> {
     });
 
     // 3초 후 분석 완료
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() {
           _isProcessing = false;
         });
         // 결과 반환
-        Navigator.pop(context, "success");
+        Navigator.pop(context, "captured_image.jpg");
       }
     });
   }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 
 class SocialLoginButtons extends StatelessWidget {
@@ -28,7 +28,7 @@ class SocialLoginButtons extends StatelessWidget {
             width: double.infinity,
             height: 50,
             decoration: BoxDecoration(
-              color: Colors.lightBlue,
+              color: Colors.red,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(

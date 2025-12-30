@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../widgets/social_login_buttons.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -21,7 +21,7 @@ class LoginScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.location_on, size: 80, color: Colors.lightBlue),
+            const Icon(Icons.location_on, size: 80, color: Colors.red),
             const SizedBox(height: 20),
             const Text(
               "핀다(Pinda)",
@@ -33,7 +33,7 @@ class LoginScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              "지금 여기, 궁금한 곳의 모든 것",
+              "지금 거기, 궁금한 곳의 모든 것",
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 60),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// 아래 화면 파일들이 실제로 만들어져 있어야 에러가 안 납니다.
 import 'screens/map_view.dart';
 import 'screens/question_view.dart';
 import 'screens/apply_view.dart';
@@ -10,46 +9,6 @@ void main() {
   runApp(const PindaApp());
 }
 
-class AppInitializationError extends StatelessWidget {
-  final String errorMessage;
-  const AppInitializationError({super.key, required this.errorMessage});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 60, color: Colors.red),
-                const SizedBox(height: 20),
-                const Text(
-                  "지도 초기화 실패",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  errorMessage,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 30),
-                const Text(
-                  "1. 인터넷 연결을 확인해주세요.\n2. Client ID가 올바른지 확인해주세요.\n3. 웹 도메인(localhost:3000)이 등록되어 있는지 확인해주세요.",
-                  textAlign: TextAlign.left,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class PindaApp extends StatelessWidget {
   const PindaApp({super.key});
 
@@ -58,7 +17,7 @@ class PindaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pinda',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightBlue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.grey[50],
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -89,6 +48,12 @@ class MainScreenState extends State<MainScreen> {
     MyPageView(), // 3: 마이페이지
   ];
 
+  void changeTab(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -102,7 +67,7 @@ class MainScreenState extends State<MainScreen> {
         title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.location_on, color: Colors.lightBlue),
+            Icon(Icons.location_on, color: Colors.red),
             SizedBox(width: 8),
             Text(
               "핀다(Pinda)",
@@ -140,7 +105,7 @@ class MainScreenState extends State<MainScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.lightBlue,
+        selectedItemColor: Colors.red,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
