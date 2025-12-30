@@ -7,7 +7,7 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
 const _markerHtml =
-    '<div style="cursor:pointer;width:30px;height:42px;"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
+    '<div style="cursor:pointer;width:30px;height:42px;pointer-events:auto;"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
 
 /// 네이버 지도 JS API를 Flutter Web에서 사용하기 위한 위젯
 class NaverMapWeb extends StatefulWidget {
@@ -192,12 +192,28 @@ class _NaverMapWebState extends State<NaverMapWeb> {
       options['map'] = _map;
 
       // 마커 아이콘 (빨간색)
+      // 마커 아이콘
       final iconConfig = JSObject();
-      iconConfig['content'] = _markerHtml.toJS;
-      iconConfig['size'] =
-          (maps['Size'] as JSFunction).callAsConstructor(30.toJS, 42.toJS);
-      iconConfig['anchor'] =
-          (maps['Point'] as JSFunction).callAsConstructor(15.toJS, 42.toJS);
+      if (marker.isMyLocation) {
+        // 내 위치 파란 동그라미
+        // ignore: prefer_interpolation_to_compose_strings
+        iconConfig['content'] =
+            ('<div style="pointer-events:auto;width:40px;height:40px;display:flex;justify-content:center;align-items:center;">' +
+                    '<div style="width:40px;height:40px;background:rgba(66, 133, 244, 0.3);border-radius:50%;position:absolute;"></div>' +
+                    '<div style="width:20px;height:20px;background:#4285F4;border:2px solid #fff;border-radius:50%;position:relative;z-index:1;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>' +
+                    '</div>')
+                .toJS;
+        iconConfig['size'] =
+            (maps['Size'] as JSFunction).callAsConstructor(40.toJS, 40.toJS);
+        iconConfig['anchor'] =
+            (maps['Point'] as JSFunction).callAsConstructor(20.toJS, 20.toJS);
+      } else {
+        iconConfig['content'] = _markerHtml.toJS;
+        iconConfig['size'] =
+            (maps['Size'] as JSFunction).callAsConstructor(30.toJS, 42.toJS);
+        iconConfig['anchor'] =
+            (maps['Point'] as JSFunction).callAsConstructor(15.toJS, 42.toJS);
+      }
       options['icon'] = iconConfig;
 
       if (marker.title != null) {
@@ -322,6 +338,8 @@ class NaverMapMarker {
   final String? captionText;
   final VoidCallback? onTap;
 
+  final bool isMyLocation;
+
   const NaverMapMarker({
     required this.id,
     required this.latitude,
@@ -329,6 +347,7 @@ class NaverMapMarker {
     this.title,
     this.captionText,
     this.onTap,
+    this.isMyLocation = false,
   });
 }
 

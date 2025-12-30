@@ -21,6 +21,9 @@ class _MapViewState extends State<MapView> {
   final double _initialLat = 37.5665;
   final double _initialLng = 126.9780;
 
+  double? _currentLat;
+  double? _currentLng;
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +63,10 @@ class _MapViewState extends State<MapView> {
   Future<void> _moveToCurrentLocation() async {
     try {
       Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _currentLat = position.latitude;
+        _currentLng = position.longitude;
+      });
       _mapController?.moveCamera(position.latitude, position.longitude);
     } catch (e) {
       debugPrint("Location error: $e");
@@ -264,16 +271,24 @@ class _MapViewState extends State<MapView> {
                   latitude: _initialLat,
                   longitude: _initialLng,
                   zoom: 14,
-                  markers: questions
-                      .map((q) => NaverMapMarker(
-                            id: q.id,
-                            latitude: q.latitude,
-                            longitude: q.longitude,
-                            title: q.title,
-                            captionText: q.category,
-                            onTap: () => _showQuestionDetail(q),
-                          ))
-                      .toList(),
+                  markers: [
+                    ...questions.map((q) => NaverMapMarker(
+                          id: q.id,
+                          latitude: q.latitude,
+                          longitude: q.longitude,
+                          title: q.title,
+                          captionText: q.category,
+                          onTap: () => _showQuestionDetail(q),
+                        )),
+                    if (_currentLat != null && _currentLng != null)
+                      NaverMapMarker(
+                        id: 'my_location',
+                        latitude: _currentLat!,
+                        longitude: _currentLng!,
+                        title: '내 위치',
+                        isMyLocation: true,
+                      ),
+                  ],
                   onMapReady: (controller) {
                     _mapController = controller;
                   },
