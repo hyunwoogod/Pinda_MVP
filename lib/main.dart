@@ -15,7 +15,11 @@ class PindaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Pinda',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+        scaffoldBackgroundColor: Colors.grey[50], // 눈이 편안한 배경색
+      ),
       home: const MainScreen(),
     );
   }
