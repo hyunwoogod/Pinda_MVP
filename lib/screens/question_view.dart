@@ -135,41 +135,6 @@ class _QuestionViewState extends State<QuestionView> {
     }
   }
 
-  // 주소 검색 다이얼로그
-  void _showAddressSearchDialog() {
-    final TextEditingController searchController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("장소 검색"),
-        content: TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            hintText: "예: 한국외대, 외대역",
-            border: OutlineInputBorder(),
-          ),
-          onSubmitted: (value) {
-            Navigator.pop(context);
-            _searchAddress(value);
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("취소"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _searchAddress(searchController.text);
-            },
-            child: const Text("검색"),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<UserModel?>(
@@ -214,30 +179,19 @@ class _QuestionViewState extends State<QuestionView> {
                 const SizedBox(height: 20),
 
                 // 위치 입력 (지도 연동 + 아이콘 검색)
-                GestureDetector(
-                  onTap: () => _showAddressSearchDialog(),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _locationController,
-                          enabled: false, // 터치로만 동작
-                          decoration: const InputDecoration(
-                            labelText: "위치",
-                            hintText: "지도를 터치하거나 아이콘을 눌러 검색하세요",
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.location_on),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      IconButton(
-                        onPressed: () => _showAddressSearchDialog(),
-                        icon: const Icon(Icons.search, size: 30),
-                        color: Colors.blue,
-                      ),
-                    ],
+                TextField(
+                  controller: _locationController,
+                  decoration: InputDecoration(
+                    labelText: "위치",
+                    hintText: "장소를 입력하고 엔터를 누르세요",
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.location_on),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search, color: Colors.blue),
+                      onPressed: () => _searchAddress(_locationController.text),
+                    ),
                   ),
+                  onSubmitted: (value) => _searchAddress(value),
                 ),
                 const SizedBox(height: 10),
 
