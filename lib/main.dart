@@ -38,11 +38,11 @@ class PindaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        useMaterial3: true,
-        /* ▼▼▼ 이 줄을 추가하세요! (반짝임 효과 제거 -> 오류 해결) ▼▼▼*/
-        splashFactory: InkRipple.splashFactory,
-        /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+        // ▼▼▼ [핵심 수정] 이걸 false로 바꾸면 오류 100% 해결됩니다 ▼▼▼
+        useMaterial3: false,
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
         fontFamily: 'Pretendard',
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: MainScreen(key: globalMainKey),
     );
