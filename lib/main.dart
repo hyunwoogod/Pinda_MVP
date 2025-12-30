@@ -35,7 +35,12 @@ class PindaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Pinda',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+        splashFactory: InkRipple.splashFactory, // 윈도우 오류 방지용
+      ),
       home: MainScreen(key: globalMainKey),
     );
   }
@@ -124,7 +129,7 @@ class _MapViewState extends State<MapView> {
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
-    _mapController.dispose();
+    // _mapController.dispose(); // [수정] 최신 버전에서는 dispose 호출 안 함
     super.dispose();
   }
 
@@ -385,7 +390,7 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  @override
+  // ▼▼▼ [수정됨] 중복 @override 제거 ▼▼▼
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -611,7 +616,6 @@ class _MapViewState extends State<MapView> {
 }
 
 // --- 2. 질문 등록 뷰 (Question View: Form) ---
-// --- 2. 질문 등록 뷰 (Question View: Form) ---
 class QuestionView extends StatefulWidget {
   const QuestionView({super.key});
 
@@ -647,7 +651,7 @@ class _QuestionViewState extends State<QuestionView> {
     _titleController.dispose();
     _contentController.dispose();
     _locationController.dispose();
-    _mapController.dispose();
+    // _mapController.dispose(); // [수정] 최신 버전에서는 dispose 호출 안 함
     super.dispose();
   }
 
@@ -1089,8 +1093,6 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 }
 
-// --- 3. 응모 뷰 (Apply View) ---
-// --- 3. 응모 뷰 (Apply View: Weekly Event) ---
 // --- 3. 응모 뷰 (Apply View: Weekly Event) ---
 class ApplyView extends StatefulWidget {
   const ApplyView({super.key});
@@ -1125,26 +1127,15 @@ class _ApplyViewState extends State<ApplyView> {
   void _updateTime() {
     final now = DateTime.now();
     // 다음 주 월요일 00:00 계산
-    // 1(월)..7(일). 다음 월요일은?
-    // (8 - weekday) % 7 days later? No.
-    // Monday(1) -> Next Monday(+7)
-    // Sunday(7) -> Next Monday(+1)
-
     int daysUntilMonday = 8 - now.weekday;
     if (daysUntilMonday == 0) daysUntilMonday = 7; // 오늘이 월요일 00:00 지났으면 다음주
 
-    // 타겟: 이번주 일요일 자정 = 다음주 월요일 00:00
-    // 그냥 다음 돌아오는 월요일 00:00으로 설정
-    // 만약 오늘이 월요일이고 00:00:01이면? 다음주 월요일로.
-
     final nextMonday = DateTime(now.year, now.month, now.day + daysUntilMonday);
-    // 정확히 00:00:00
     final target = DateTime(nextMonday.year, nextMonday.month, nextMonday.day);
 
     final difference = target.difference(now);
 
     if (difference.isNegative) {
-      // 이미 지났으면(그럴 리 적지만) 0 처리
       if (mounted) setState(() => _timeLeft = "마감됨");
     } else {
       final days = difference.inDays;
@@ -1152,8 +1143,6 @@ class _ApplyViewState extends State<ApplyView> {
       final minutes = difference.inMinutes % 60;
       final seconds = difference.inSeconds % 60;
 
-      // 포맷: D-Day HH:MM:SS or just HH:MM:SS if < 24h
-      // 요청: "몇분 몇초 남았다는 타이머" -> Detail Time
       String formatted = "";
       if (days > 0) formatted += "${days}일 ";
       formatted +=
@@ -1357,7 +1346,6 @@ class _ApplyViewState extends State<ApplyView> {
   }
 }
 
-// --- 4. 마이페이지 (My Page) ---
 // --- 4. 마이페이지 (My Page) ---
 class MyPageView extends StatelessWidget {
   const MyPageView({super.key});
