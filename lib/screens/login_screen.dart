@@ -21,10 +21,10 @@ class LoginScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.location_on, size: 80, color: Colors.blueAccent),
+            const Icon(Icons.location_on, size: 80, color: Colors.lightBlue),
             const SizedBox(height: 20),
             const Text(
-              "Pinda",
+              "핀다(Pinda)",
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,

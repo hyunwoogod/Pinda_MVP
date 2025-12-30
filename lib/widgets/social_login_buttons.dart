@@ -28,7 +28,7 @@ class SocialLoginButtons extends StatelessWidget {
             width: double.infinity,
             height: 50,
             decoration: BoxDecoration(
-              color: Colors.blueAccent,
+              color: Colors.lightBlue,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(

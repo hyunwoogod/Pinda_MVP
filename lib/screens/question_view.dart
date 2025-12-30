@@ -316,7 +316,7 @@ class _QuestionViewState extends State<QuestionView> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          user == null ? Colors.grey : Colors.blueAccent,
+                          user == null ? Colors.grey : Colors.lightBlue,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

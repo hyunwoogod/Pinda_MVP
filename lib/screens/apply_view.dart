@@ -97,7 +97,7 @@ class _ApplyViewState extends State<ApplyView> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
+                  color: Colors.lightBlue,
                 ),
               ),
               const SizedBox(height: 40),

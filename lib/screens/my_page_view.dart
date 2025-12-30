@@ -20,11 +20,11 @@ class MyPageView extends StatelessWidget {
                 const Icon(
                   Icons.location_on, // Pinda PIN
                   size: 80,
-                  color: Colors.blueAccent,
+                  color: Colors.lightBlue,
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "Pinda",
+                  "핀다(Pinda)",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -56,7 +56,7 @@ class MyPageView extends StatelessWidget {
                 children: [
                   const CircleAvatar(
                     radius: 40,
-                    backgroundColor: Colors.blueAccent,
+                    backgroundColor: Colors.lightBlue,
                     child: Icon(Icons.person, size: 50, color: Colors.white),
                   ),
                   const SizedBox(width: 20),
@@ -73,7 +73,7 @@ class MyPageView extends StatelessWidget {
                       Text(
                         "LV.${user.level} 동네 보안관",
                         style: const TextStyle(
-                          color: Colors.blue,
+                          color: Colors.lightBlue,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -90,7 +90,7 @@ class MyPageView extends StatelessWidget {
               const LinearProgressIndicator(
                 value: 0.7,
                 backgroundColor: Colors.grey,
-                color: Colors.blue,
+                color: Colors.lightBlue,
                 minHeight: 10,
               ),
               const SizedBox(height: 30),
@@ -116,7 +116,7 @@ class MyPageView extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: Colors.lightBlue[50],
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
@@ -127,7 +127,7 @@ class MyPageView extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: Colors.lightBlue,
                       ),
                     ),
                     const Text(

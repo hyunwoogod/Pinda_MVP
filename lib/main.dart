@@ -16,7 +16,7 @@ class PindaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pinda',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightBlue),
         useMaterial3: true,
         // 시각적 밀도 조정 (데스크탑/웹에서 너무 퍼져 보이는 것 방지)
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -59,10 +59,10 @@ class MainScreenState extends State<MainScreen> {
         title: const Row(
           mainAxisSize: MainAxisSize.min, // 중앙 정렬 위해 최소 크기
           children: [
-            Icon(Icons.location_on, color: Colors.blueAccent),
+            Icon(Icons.location_on, color: Colors.lightBlue),
             SizedBox(width: 8),
             Text(
-              "Pinda",
+              "핀다(Pinda)",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -96,7 +96,7 @@ class MainScreenState extends State<MainScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
+        selectedItemColor: Colors.lightBlue,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed, // 4개 이상일 때 레이아웃 유지
