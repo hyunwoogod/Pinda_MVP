@@ -1,0 +1,35 @@
+# backend_mock.py (FastAPI 예시)
+
+from fastapi import FastAPI, UploadFile, File
+import cv2 # 이미지 처리 라이브러리
+import numpy as np
+
+app = FastAPI()
+
+@app.post("/upload/live-photo")
+async def upload_photo(file: UploadFile = File(...), location_lat: float, location_lng: float):
+    # 1. GPS 메타데이터 검증 (현장 인증)
+    if not verify_location(location_lat, location_lng):
+        return {"status": "error", "message": "현장 위치가 일치하지 않습니다."}
+
+    # 2. 이미지 읽기
+    image_data = await file.read()
+    nparr = np.fromstring(image_data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    # 3. AI 얼굴 인식 및 블러 처리 (Privacy Protection)
+    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+
+    for (x, y, w, h) in faces:
+        # 얼굴 영역 추출 -> 블러 처리 -> 덮어쓰기
+        roi = img[y:y+h, x:x+w]
+        roi = cv2.GaussianBlur(roi, (23, 23), 30)
+        img[y:y+h, x:x+w] = roi
+
+    # 4. 처리된 이미지 저장 및 보상 지급
+    save_image(img)
+    give_reward(user_id="current_user", reward_type="raffle_ticket")
+
+    return {"status": "success", "message": "얼굴 블러 처리 완료! 보상이 지급되었습니다."}
