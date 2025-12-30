@@ -35,6 +35,7 @@ class _NaverMapWebState extends State<NaverMapWeb> {
   final List<JSObject> _jsMarkers = [];
 
   JSFunction? _onMarkerTapJs;
+  DateTime? _lastTapTime;
 
   @override
   void initState() {
@@ -57,6 +58,13 @@ class _NaverMapWebState extends State<NaverMapWeb> {
   }
 
   void _handleMarkerTap(String id) {
+    final now = DateTime.now();
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!) < const Duration(milliseconds: 500)) {
+      return;
+    }
+    _lastTapTime = now;
+
     try {
       final marker = widget.markers.firstWhere((m) => m.id == id);
       marker.onTap?.call();
