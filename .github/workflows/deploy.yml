@@ -25,6 +25,9 @@ jobs:
       - name: Build Web App
         run: flutter build web --release --web-renderer html --no-tree-shake-icons
 
+      - name: Inspect Build Output
+        run: ls -R build/web
+
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2.0
         with:
