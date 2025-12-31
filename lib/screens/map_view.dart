@@ -261,6 +261,7 @@ class _MapViewState extends State<MapView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false, // 키보드 올라와도 맵 크기 줄어들지 않게 고정
       body: Stack(
         children: [
           SizedBox.expand(
