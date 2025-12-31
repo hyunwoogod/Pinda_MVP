@@ -111,7 +111,7 @@ class _ApplyViewState extends State<ApplyView> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  "${hours}시간 ${minutes}분 ${seconds}초 남음",
+                  "$hours시간 $minutes분 $seconds초 남음",
                   style: const TextStyle(
                     fontSize: 24,
                     color: Colors.white,

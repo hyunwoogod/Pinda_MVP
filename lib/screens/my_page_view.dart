@@ -40,9 +40,10 @@ class MyPageView extends StatelessWidget {
 
                 // 공통 소셜 로그인 버튼 위젯 (로그인 성공 시 화면 유지 -> 즉시 프로필 전환됨)
                 const SocialLoginButtons(),
-                
+
                 const SizedBox(height: 40),
-                const Text("문의: ecoguy0818@gmail.com", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text("문의: ecoguy0818@gmail.com",
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           );
@@ -152,7 +153,9 @@ class MyPageView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              const Center(child: Text("문의: ecoguy0818@gmail.com", style: TextStyle(color: Colors.grey, fontSize: 12))),
+              const Center(
+                  child: Text("문의: ecoguy0818@gmail.com",
+                      style: TextStyle(color: Colors.grey, fontSize: 12))),
               const SizedBox(height: 20),
             ],
           ),

@@ -26,10 +26,10 @@ class NaverMapWeb extends StatefulWidget {
   });
 
   @override
-  State<NaverMapWeb> createState() => _NaverMapWebState();
+  State<NaverMapWeb> createState() => NaverMapWebState();
 }
 
-class _NaverMapWebState extends State<NaverMapWeb> {
+class NaverMapWebState extends State<NaverMapWeb> {
   late String _viewId;
   JSObject? _map;
   final List<JSObject> _jsMarkers = [];
@@ -72,24 +72,29 @@ class _NaverMapWebState extends State<NaverMapWeb> {
   }
 
   String _createMarkerHtml(String id, bool isMyLocation) {
-    final clickHandler = "window.onMarkerTap('$id'); event.stopPropagation();";
-    final touchStart =
-        "event.stopPropagation(); this.style.transform='scale(0.9)';";
-    final touchEnd =
-        "this.style.transform='scale(1.0)'; window.onMarkerTap('$id'); event.stopPropagation();";
-    final mouseDown = "this.style.transform='scale(0.9)';";
-    final mouseUp = "this.style.transform='scale(1.0)';";
+    const clickHandler = "window.onMarkerTap('";
+    const clickHandlerEnd = "'); event.stopPropagation();";
+    final fullClickHandler = "$clickHandler$id$clickHandlerEnd";
 
-    final commonStyle =
+    const touchStart =
+        "event.stopPropagation(); this.style.transform='scale(0.9)';";
+    const touchEnd = "this.style.transform='scale(1.0)'; window.onMarkerTap('";
+    const touchEndSuffix = "'); event.stopPropagation();";
+    final fullTouchEnd = "$touchEnd$id$touchEndSuffix";
+
+    const mouseDown = "this.style.transform='scale(0.9)';";
+    const mouseUp = "this.style.transform='scale(1.0)';";
+
+    const commonStyle =
         "cursor:pointer;pointer-events:auto;transition:transform 0.1s ease-in-out;";
 
     if (isMyLocation) {
-      return '<div onclick="$clickHandler" ontouchstart="$touchStart" ontouchend="$touchEnd" onmousedown="$mouseDown" onmouseup="$mouseUp" onmouseleave="$mouseUp" style="z-index:2000;width:40px;height:40px;display:flex;justify-content:center;align-items:center;$commonStyle">' +
-          '<div style="width:40px;height:40px;background:rgba(66, 133, 244, 0.3);border-radius:50%;position:absolute;"></div>' +
-          '<div style="width:20px;height:20px;background:#4285F4;border:2px solid #fff;border-radius:50%;position:relative;z-index:1;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>' +
+      return '<div onclick="$fullClickHandler" ontouchstart="$touchStart" ontouchend="$fullTouchEnd" onmousedown="$mouseDown" onmouseup="$mouseUp" onmouseleave="$mouseUp" style="z-index:2000;width:40px;height:40px;display:flex;justify-content:center;align-items:center;$commonStyle">'
+          '<div style="width:40px;height:40px;background:rgba(66, 133, 244, 0.3);border-radius:50%;position:absolute;"></div>'
+          '<div style="width:20px;height:20px;background:#4285F4;border:2px solid #fff;border-radius:50%;position:relative;z-index:1;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>'
           '</div>';
     } else {
-      return '<div onclick="$clickHandler" ontouchstart="$touchStart" ontouchend="$touchEnd" onmousedown="$mouseDown" onmouseup="$mouseUp" onmouseleave="$mouseUp" style="z-index:2000;width:30px;height:42px;$commonStyle"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
+      return '<div onclick="$fullClickHandler" ontouchstart="$touchStart" ontouchend="$fullTouchEnd" onmousedown="$mouseDown" onmouseup="$mouseUp" onmouseleave="$mouseUp" style="z-index:2000;width:30px;height:42px;$commonStyle"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
     }
   }
 
@@ -361,7 +366,7 @@ class _NaverMapWebState extends State<NaverMapWeb> {
 
 /// 네이버 지도 컨트롤러
 class NaverMapWebController {
-  final _NaverMapWebState _state;
+  final NaverMapWebState _state;
 
   NaverMapWebController(this._state);
 
