@@ -1,43 +1,30 @@
-name: Deploy to Netlify
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  build_and_deploy:
+  build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
+      
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0' # Downgraded version match
           channel: 'stable'
+          
+      - run: flutter config --enable-web
+      - run: flutter pub get
+      
+      # 중요: GitHub Pages 리포지토리 이름(Pinda_MVP)에 맞춰 base-href 설정
+      - run: flutter build web --release --web-renderer html --base-href "/Pinda_MVP/"
 
-      - name: Get Dependencies
-        run: flutter pub get
-
-      - name: Build Web App
-        run: flutter build web --release --web-renderer html --no-tree-shake-icons
-
-      - name: Inspect Build Output
-        run: ls -R build/web
-
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v2.0
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          publish-dir: './build/web'
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-          enable-pull-request-comment: false
-          enable-commit-comment: true
-          overwrites-pull-request-comment: true
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
