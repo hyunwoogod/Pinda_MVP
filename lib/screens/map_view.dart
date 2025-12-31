@@ -347,7 +347,8 @@ class _MapViewState extends State<MapView> {
         title: const Text("주소 직접 입력"),
         content: TextField(
           controller: searchController,
-          autofocus: true,
+          // autofocus: true, // 모바일 키보드 호환성 수정
+          textInputAction: TextInputAction.search,
           decoration: const InputDecoration(
             hintText: "주소 입력",
             border: OutlineInputBorder(),
