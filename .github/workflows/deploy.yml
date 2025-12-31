@@ -15,9 +15,11 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.0'
           channel: 'stable'
           
       - run: flutter config --enable-web
+      - run: rm pubspec.lock
       - run: flutter pub get
       
       # 중요: GitHub Pages 리포지토리 이름(Pinda_MVP)에 맞춰 base-href 설정
