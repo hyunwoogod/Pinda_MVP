@@ -69,6 +69,7 @@ class MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false, // 전체 화면 크기 고정 (키보드 영향 제거)
       appBar: AppBar(
         title: const Row(
           mainAxisSize: MainAxisSize.min,
