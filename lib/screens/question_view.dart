@@ -101,7 +101,8 @@ class _QuestionViewState extends State<QuestionView> {
               children: [
                 TextField(
                   controller: searchController,
-                  autofocus: true,
+                  // autofocus: true, // 모바일 브라우저 정책상 자동 키보드 실행 차단됨 (오히려 버그 유발)
+                  textInputAction: TextInputAction.search,
                   decoration: const InputDecoration(
                     hintText: "주소 입력",
                     border: OutlineInputBorder(),
