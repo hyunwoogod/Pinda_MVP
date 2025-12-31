@@ -162,6 +162,13 @@ class NaverMapWebState extends State<NaverMapWeb> {
               final size = (maps['Size'] as JSFunction)
                   .callAsConstructor(width.toJS, height.toJS);
               (_map as JSObject).callMethod('setSize'.toJS, size);
+
+              // 중심점 유지 및 렌더링 강제 업데이트
+              try {
+                final currentCenter =
+                    (_map as JSObject).callMethod('getCenter'.toJS);
+                (_map as JSObject).callMethod('setCenter'.toJS, currentCenter);
+              } catch (_) {}
             }
           }
         }).toJS;
