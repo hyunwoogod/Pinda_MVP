@@ -320,7 +320,7 @@ class _QuestionViewState extends State<QuestionView> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (user == null) {
                         Navigator.push(
                           context,
@@ -349,7 +349,7 @@ class _QuestionViewState extends State<QuestionView> {
                           longitude: _selectedLng,
                           createdAt: DateTime.now(),
                         );
-                        QuestionState().addQuestion(newQuestion);
+                        await QuestionState().addQuestion(newQuestion);
 
                         // 지도 탭으로 이동 (MainScreen의 0번 탭)
                         context

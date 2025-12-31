@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 class Comment {
@@ -12,6 +13,24 @@ class Comment {
     required this.author,
     required this.createdAt,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'content': content,
+      'author': author,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  factory Comment.fromMap(Map<String, dynamic> map) {
+    return Comment(
+      id: map['id'] ?? '',
+      content: map['content'] ?? '',
+      author: map['author'] ?? 'Unknown',
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+    );
+  }
 }
 
 class Question {
@@ -34,63 +53,73 @@ class Question {
     required this.createdAt,
     this.comments = const [],
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'content': content,
+      'category': category,
+      'latitude': latitude,
+      'longitude': longitude,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'comments': comments.map((c) => c.toMap()).toList(),
+    };
+  }
+
+  factory Question.fromMap(Map<String, dynamic> map, String docId) {
+    return Question(
+      id: docId,
+      title: map['title'] ?? '',
+      content: map['content'] ?? '',
+      category: map['category'] ?? '',
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      comments: (map['comments'] as List<dynamic>?)
+              ?.map((c) => Comment.fromMap(c as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
 }
 
 class QuestionState extends ValueNotifier<List<Question>> {
   static final QuestionState _instance = QuestionState._internal();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   factory QuestionState() => _instance;
 
-  QuestionState._internal()
-      : super([
-          Question(
-            id: "gs25_imun",
-            title: "GS25 이문점",
-            content: "두바이 초콜릿 재고 있나요?",
-            category: "재고/상품",
-            latitude: 37.5966,
-            longitude: 127.0601,
-            createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
-            comments: [
-              Comment(
-                  id: "c1",
-                  content: "아까 갔을 땐 없었어요 ㅠㅠ",
-                  author: "익명1",
-                  createdAt:
-                      DateTime.now().subtract(const Duration(minutes: 5))),
-            ],
-          ),
-          Question(
-            id: "library_main",
-            title: "중앙도서관",
-            content: "3열람실 자리 있나요?",
-            category: "시설/주차",
-            latitude: 37.5955,
-            longitude: 127.0528,
-            createdAt: DateTime.now().subtract(const Duration(minutes: 60)),
-            comments: [],
-          ),
-        ]);
-
-  void addQuestion(Question question) {
-    value = [...value, question];
+  QuestionState._internal() : super([]) {
+    _initRealtimeUpdates();
   }
 
-  void addComment(String questionId, Comment comment) {
-    value = value.map((q) {
-      if (q.id == questionId) {
-        return Question(
-          id: q.id,
-          title: q.title,
-          content: q.content,
-          category: q.category,
-          latitude: q.latitude,
-          longitude: q.longitude,
-          createdAt: q.createdAt,
-          comments: [...q.comments, comment],
-        );
-      }
-      return q;
-    }).toList();
+  void _initRealtimeUpdates() {
+    // Firestore 컬렉션 실시간 구독
+    _firestore
+        .collection('questions')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+      final questions = snapshot.docs.map((doc) {
+        return Question.fromMap(doc.data(), doc.id);
+      }).toList();
+      value = questions; // UI 자동 업데이트
+    });
+  }
+
+  Future<void> addQuestion(Question question) async {
+    // Firestore에 저장 (ID는 문서 ID로 자동 지정되거나, 지정한 ID 사용)
+    await _firestore
+        .collection('questions')
+        .doc(question.id)
+        .set(question.toMap());
+  }
+
+  Future<void> addComment(String questionId, Comment comment) async {
+    // 댓글 추가 (ArrayUnion 사용)
+    await _firestore.collection('questions').doc(questionId).update({
+      'comments': FieldValue.arrayUnion([comment.toMap()])
+    });
   }
 }
