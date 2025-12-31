@@ -32,6 +32,7 @@ class NaverMapWeb extends StatefulWidget {
 class NaverMapWebState extends State<NaverMapWeb> {
   late String _viewId;
   JSObject? _map;
+  JSObject? _resizeObserver;
   final List<JSObject> _jsMarkers = [];
 
   JSFunction? _onMarkerTapJs;
@@ -53,6 +54,7 @@ class NaverMapWebState extends State<NaverMapWeb> {
 
   @override
   void dispose() {
+    _resizeObserver?.callMethod('disconnect'.toJS);
     globalContext['onMarkerTap'] = null;
     super.dispose();
   }
@@ -143,16 +145,37 @@ class NaverMapWebState extends State<NaverMapWeb> {
       ) as JSObject;
 
       // 옵션 생성
-      final options = JSObject();
-      options['center'] = center;
-      options['zoom'] = widget.zoom.toInt().toJS;
-      options['autoResize'] = true.toJS;
+      final mapOptions = JSObject();
+      mapOptions['center'] = center;
+      mapOptions['zoom'] = widget.zoom.toJS;
 
-      // Map 생성
-      _map = mapConstructor.callAsConstructor(
-        container as JSObject,
-        options,
-      ) as JSObject;
+      _map =
+          mapConstructor.callAsConstructor(container, mapOptions) as JSObject;
+
+      // ResizeObserver 등록 (컨테이너 크기 변경 감지)
+      try {
+        final resizeCallback = ((JSArray entries, JSObject observer) {
+          if (_map != null) {
+            final width = container.clientWidth;
+            final height = container.clientHeight;
+            if (width > 0 && height > 0) {
+              final size = (maps['Size'] as JSFunction)
+                  .callAsConstructor(width.toJS, height.toJS);
+              (_map as JSObject).callMethod('setSize'.toJS, size);
+            }
+          }
+        }).toJS;
+
+        _resizeObserver = (globalContext['ResizeObserver'] as JSFunction)
+            .callAsConstructor(resizeCallback) as JSObject;
+
+        _resizeObserver?.callMethod('observe'.toJS, container);
+      } catch (e) {
+        debugPrint('ResizeObserver error: $e');
+      }
+
+      // 초기 마커 추가
+      updateMarkers(widget.markers);
 
       if (_map != null) {
         _addClickListener();
