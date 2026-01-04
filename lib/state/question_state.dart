@@ -42,6 +42,7 @@ class Question {
   final double longitude;
   final String author; // 작성자 추가
   final DateTime createdAt;
+  final DateTime? resolvedAt; // 해결된 시간 (5분 후 삭제 로직용)
   final List<Comment> comments;
 
   Question({
@@ -53,6 +54,7 @@ class Question {
     required this.longitude,
     required this.author,
     required this.createdAt,
+    this.resolvedAt,
     this.comments = const [],
   });
 
@@ -66,6 +68,7 @@ class Question {
       'longitude': longitude,
       'author': author,
       'createdAt': Timestamp.fromDate(createdAt),
+      'resolvedAt': resolvedAt != null ? Timestamp.fromDate(resolvedAt!) : null,
       'comments': comments.map((c) => c.toMap()).toList(),
     };
   }
@@ -80,6 +83,9 @@ class Question {
       longitude: (map['longitude'] as num).toDouble(),
       author: map['author'] ?? '익명', // 없을 경우 호환성 유지
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      resolvedAt: map['resolvedAt'] != null
+          ? (map['resolvedAt'] as Timestamp).toDate()
+          : null,
       comments: (map['comments'] as List<dynamic>?)
               ?.map((c) => Comment.fromMap(c as Map<String, dynamic>))
               .toList() ??
@@ -105,9 +111,32 @@ class QuestionState extends ValueNotifier<List<Question>> {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) {
-      final questions = snapshot.docs.map((doc) {
-        return Question.fromMap(doc.data(), doc.id);
-      }).toList();
+      final now = DateTime.now();
+      final questions = <Question>[];
+
+      for (var doc in snapshot.docs) {
+        final q = Question.fromMap(doc.data(), doc.id);
+
+        // 1. 해결된 질문 5분 후 삭제 로직
+        if (q.resolvedAt != null) {
+          final diff = now.difference(q.resolvedAt!);
+          if (diff.inMinutes >= 5) {
+            deleteQuestion(q.id); // 비동기 삭제
+            continue; // UI 리스트에는 포함하지 않음
+          }
+        }
+
+        // 2. 답변 없는 질문 30분 후 삭제 로직
+        if (q.comments.isEmpty) {
+          final diff = now.difference(q.createdAt);
+          if (diff.inMinutes >= 30) {
+            deleteQuestion(q.id);
+            continue;
+          }
+        }
+
+        questions.add(q);
+      }
       value = questions; // UI 자동 업데이트
     });
   }
@@ -130,5 +159,37 @@ class QuestionState extends ValueNotifier<List<Question>> {
   Future<void> deleteQuestion(String questionId) async {
     // 질문 삭제
     await _firestore.collection('questions').doc(questionId).delete();
+  }
+
+  Future<void> resolveQuestion(String questionId, String answerAuthor) async {
+    // 트랜잭션 사용: 답변 작성자 점수 증가 + 질문 해결 상태 업데이트
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // 1. 답변 작성자의 유저 문서 찾기 (닉네임 기반)
+        // **주의**: 닉네임이 고유해야 정확함. ID기반이 더 안전하지만 현재 구조상 닉네임 사용
+        final userQuery = await _firestore
+            .collection('users')
+            .where('nickname', isEqualTo: answerAuthor)
+            .limit(1)
+            .get();
+
+        if (userQuery.docs.isNotEmpty) {
+          final userDoc = userQuery.docs.first;
+          final currentScore = userDoc.data()['acceptedCount'] ?? 0;
+          transaction.update(userDoc.reference, {
+            'acceptedCount': currentScore + 1,
+          });
+        }
+
+        // 2. 질문에 해결 시간(resolvedAt) 기록
+        final questionRef = _firestore.collection('questions').doc(questionId);
+        transaction.update(questionRef, {
+          'resolvedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } catch (e) {
+      debugPrint("Resolve Error: $e");
+      rethrow;
+    }
   }
 }

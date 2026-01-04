@@ -35,6 +35,7 @@ void main() async {
             address: data['address'] ?? "알 수 없음",
             level: data['level'] ?? 1,
             tickets: data['tickets'] ?? 0,
+            acceptedCount: data['acceptedCount'] ?? 0,
           );
         } else {
           // 문서가 없는 경우 (예: 기존 가입자) -> 기본값 + 닉네임은 이메일 앞부분

@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async'; // Timer를 위해 추가
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../widgets/naver_map_web.dart';
 import 'camera_screen.dart';
@@ -23,16 +24,22 @@ class _MapViewState extends State<MapView> {
 
   double? _currentLat;
   double? _currentLng;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _checkPermission();
     QuestionState().addListener(_onQuestionsChanged);
+    // 30초마다 화면 갱신 (마커 타이머 업데이트)
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     QuestionState().removeListener(_onQuestionsChanged);
     super.dispose();
   }
@@ -213,12 +220,15 @@ class _MapViewState extends State<MapView> {
                                     icon: const Icon(Icons.check_circle_outline,
                                         color: Colors.green),
                                     onPressed: () {
+                                      if (q.resolvedAt != null)
+                                        return; // 이미 해결됨
+
                                       showDialog(
                                         context: context,
                                         builder: (context) => AlertDialog(
                                           title: const Text("답변 채택"),
-                                          content: const Text(
-                                              "이 답변으로 문제를 해결하시겠습니까?\n채택 시 질문 핀이 지도에서 사라집니다."),
+                                          content: Text(
+                                              "'${c.author}'님의 답변을 채택하시겠습니까?\n\n- 답변자에게 랭킹 점수 1점이 지급됩니다. 🏆\n- 이 질문은 해결됨 상태로 변경되며, 5분 뒤 지도에서 자동 삭제됩니다."),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
@@ -227,19 +237,33 @@ class _MapViewState extends State<MapView> {
                                             ),
                                             ElevatedButton(
                                               onPressed: () async {
-                                                await QuestionState()
-                                                    .deleteQuestion(q.id);
-                                                if (mounted) {
-                                                  Navigator.pop(
-                                                      context); // Dialog
-                                                  Navigator.pop(
-                                                      context); // BottomSheet
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    const SnackBar(
-                                                        content: Text(
-                                                            "해결되었습니다! 핀이 삭제됩니다.")),
-                                                  );
+                                                try {
+                                                  await QuestionState()
+                                                      .resolveQuestion(
+                                                          q.id, c.author);
+                                                  if (mounted) {
+                                                    Navigator.pop(
+                                                        context); // Dialog
+                                                    Navigator.pop(
+                                                        context); // BottomSheet
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text(
+                                                              "채택되었습니다! 5분 뒤 핀이 삭제됩니다.")),
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                          content: Text(
+                                                              "오류 발생: $e")),
+                                                    );
+                                                  }
                                                 }
                                               },
                                               child: const Text("채택 및 해결"),
@@ -320,14 +344,31 @@ class _MapViewState extends State<MapView> {
                   longitude: _initialLng,
                   zoom: 14,
                   markers: [
-                    ...questions.map((q) => NaverMapMarker(
-                          id: q.id,
-                          latitude: q.latitude,
-                          longitude: q.longitude,
-                          title: q.title,
-                          captionText: q.category,
-                          onTap: () => _showQuestionDetail(q),
-                        )),
+                    ...questions.map((q) {
+                      String caption = q.category;
+                      if (q.resolvedAt != null) {
+                        final diff = DateTime.now().difference(q.resolvedAt!);
+                        final remaining = 5 - diff.inMinutes;
+                        if (remaining > 0) {
+                          caption += " (삭제 예정: ${remaining}분전)";
+                        } else {
+                          caption += " (삭제 중...)";
+                        }
+                      }
+
+                      return NaverMapMarker(
+                        id: q.id,
+                        latitude: q.latitude,
+                        longitude: q.longitude,
+                        title: q.title,
+                        captionText: caption,
+                        captionColor:
+                            q.resolvedAt != null ? Colors.grey : Colors.black,
+                        iconTintColor:
+                            q.resolvedAt != null ? Colors.grey : Colors.red,
+                        onTap: () => _showQuestionDetail(q),
+                      );
+                    }),
                     if (_currentLat != null && _currentLng != null)
                       NaverMapMarker(
                         id: 'my_location',

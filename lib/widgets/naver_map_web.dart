@@ -73,7 +73,7 @@ class NaverMapWebState extends State<NaverMapWeb> {
     } catch (_) {}
   }
 
-  String _createMarkerHtml(String id, bool isMyLocation) {
+  String _createMarkerHtml(String id, bool isMyLocation, Color? iconColor) {
     const clickHandler = "window.onMarkerTap('";
     const clickHandlerEnd = "'); event.stopPropagation();";
     final fullClickHandler = "$clickHandler$id$clickHandlerEnd";
@@ -96,7 +96,12 @@ class NaverMapWebState extends State<NaverMapWeb> {
           '<div style="width:20px;height:20px;background:#4285F4;border:2px solid #fff;border-radius:50%;position:relative;z-index:1;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>'
           '</div>';
     } else {
-      return '<div onclick="$fullClickHandler" ontouchstart="$touchStart" ontouchend="$fullTouchEnd" onmousedown="$mouseDown" onmouseup="$mouseUp" onmouseleave="$mouseUp" style="z-index:2000;width:30px;height:42px;$commonStyle"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="#FF0000" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
+      // Hex Color 변환
+      final colorHex = iconColor != null
+          ? '#${iconColor.value.toRadixString(16).substring(2)}'
+          : '#FF0000'; // 기본 빨강
+
+      return '<div onclick="$fullClickHandler" ontouchstart="$touchStart" ontouchend="$fullTouchEnd" onmousedown="$mouseDown" onmouseup="$mouseUp" onmouseleave="$mouseUp" style="z-index:2000;width:30px;height:42px;$commonStyle"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="$colorHex" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
     }
   }
 
@@ -276,11 +281,10 @@ class NaverMapWebState extends State<NaverMapWeb> {
       options['map'] = _map;
       options['clickable'] = true.toJS; // 클릭 가능 명시
 
-      // 마커 아이콘 (빨간색)
-      // 마커 아이콘
       // 마커 아이콘 설정
       final iconConfig = JSObject();
-      final htmlContent = _createMarkerHtml(marker.id, marker.isMyLocation);
+      final htmlContent = _createMarkerHtml(
+          marker.id, marker.isMyLocation, marker.iconTintColor);
       iconConfig['content'] = htmlContent.toJS;
 
       if (marker.isMyLocation) {
@@ -305,6 +309,13 @@ class NaverMapWebState extends State<NaverMapWeb> {
         caption['text'] = marker.captionText!.toJS;
         // 텍스트 색상 및 정렬 등 추가 옵션 가능
         caption['align'] = 1.toJS; // Bottom
+
+        // 캡션 색상 적용 (API 버전에 따라 지원 여부 상이, 시도)
+        if (marker.captionColor != null) {
+          // final colorHex = '#${marker.captionColor!.value.toRadixString(16).substring(2)}';
+          // caption['color'] = colorHex.toJS;
+        }
+
         options['caption'] = caption;
       }
 
@@ -416,6 +427,8 @@ class NaverMapMarker {
   final double longitude;
   final String? title;
   final String? captionText;
+  final Color? captionColor; // 추가
+  final Color? iconTintColor; // 추가
   final VoidCallback? onTap;
 
   final bool isMyLocation;
@@ -426,6 +439,8 @@ class NaverMapMarker {
     required this.longitude,
     this.title,
     this.captionText,
+    this.captionColor,
+    this.iconTintColor,
     this.onTap,
     this.isMyLocation = false,
   });
