@@ -21,6 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
+    if (_isLoading) return; // 중복 호출 방지
+
     if (_idController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("아이디와 비밀번호를 입력해주세요.")),
@@ -172,7 +174,6 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: true,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _login(),
-              onEditingComplete: () => _login(), // 엔터 키 동작 보장
             ),
             const SizedBox(height: 20),
 
