@@ -145,6 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.perm_identity),
               ),
+              textInputAction: TextInputAction.next, // 다음 필드로 이동
             ),
             const SizedBox(height: 15),
             TextField(
@@ -155,6 +156,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 prefixIcon: Icon(Icons.lock),
               ),
               obscureText: true,
+              textInputAction: TextInputAction.done, // 완료 키 표시
+              onSubmitted: (_) => _login(), // 엔터 누르면 로그인 실행
             ),
             const SizedBox(height: 20),
 
