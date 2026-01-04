@@ -40,6 +40,7 @@ class Question {
   final String category;
   final double latitude;
   final double longitude;
+  final String author; // 작성자 추가
   final DateTime createdAt;
   final List<Comment> comments;
 
@@ -50,6 +51,7 @@ class Question {
     required this.category,
     required this.latitude,
     required this.longitude,
+    required this.author,
     required this.createdAt,
     this.comments = const [],
   });
@@ -62,6 +64,7 @@ class Question {
       'category': category,
       'latitude': latitude,
       'longitude': longitude,
+      'author': author,
       'createdAt': Timestamp.fromDate(createdAt),
       'comments': comments.map((c) => c.toMap()).toList(),
     };
@@ -75,6 +78,7 @@ class Question {
       category: map['category'] ?? '',
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
+      author: map['author'] ?? '익명', // 없을 경우 호환성 유지
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       comments: (map['comments'] as List<dynamic>?)
               ?.map((c) => Comment.fromMap(c as Map<String, dynamic>))
@@ -121,5 +125,10 @@ class QuestionState extends ValueNotifier<List<Question>> {
     await _firestore.collection('questions').doc(questionId).update({
       'comments': FieldValue.arrayUnion([comment.toMap()])
     });
+  }
+
+  Future<void> deleteQuestion(String questionId) async {
+    // 질문 삭제
+    await _firestore.collection('questions').doc(questionId).delete();
   }
 }

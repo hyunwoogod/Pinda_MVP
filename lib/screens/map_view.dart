@@ -202,6 +202,48 @@ class _MapViewState extends State<MapView> {
                                     ],
                                   ),
                                 ),
+                                // 질문 작성자만 볼 수 있는 채택(해결) 버튼
+                                if (currentUser.value?.nickname == q.author)
+                                  IconButton(
+                                    icon: const Icon(Icons.check_circle_outline,
+                                        color: Colors.green),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text("답변 채택"),
+                                          content: const Text(
+                                              "이 답변으로 문제를 해결하시겠습니까?\n채택 시 질문 핀이 지도에서 사라집니다."),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: const Text("취소"),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () async {
+                                                await QuestionState()
+                                                    .deleteQuestion(q.id);
+                                                if (mounted) {
+                                                  Navigator.pop(
+                                                      context); // Dialog
+                                                  Navigator.pop(
+                                                      context); // BottomSheet
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                        content: Text(
+                                                            "해결되었습니다! 핀이 삭제됩니다.")),
+                                                  );
+                                                }
+                                              },
+                                              child: const Text("채택 및 해결"),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                               ],
                             ),
                           )),

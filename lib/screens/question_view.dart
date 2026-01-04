@@ -348,6 +348,7 @@ class _QuestionViewState extends State<QuestionView> {
                           category: _selectedCategory,
                           latitude: _selectedLat,
                           longitude: _selectedLng,
+                          author: user.nickname, // 작성자 정보 저장
                           createdAt: DateTime.now(),
                         );
                         await QuestionState().addQuestion(newQuestion);
