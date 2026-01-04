@@ -10,14 +10,64 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final _idController = TextEditingController(); // ID Controller
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nicknameController = TextEditingController();
   final _addressController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isIdChecked = false; // ID 중복확인 여부
+
+  // ID 중복 확인
+  Future<void> _checkIdDuplicate() async {
+    if (_idController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("아이디를 입력해주세요.")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: _idController.text.trim())
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("이미 사용 중인 아이디입니다.")),
+          );
+          setState(() => _isIdChecked = false);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("사용 가능한 아이디입니다.")),
+          );
+          setState(() => _isIdChecked = true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("중복 확인 중 오류가 발생했습니다: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _register() async {
+    if (!_isIdChecked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("아이디 중복 확인을 해주세요.")),
+      );
+      return;
+    }
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _nicknameController.text.isEmpty ||
@@ -30,7 +80,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // 1. Firebase Auth 사용자 생성
+      // 1. Firebase Auth 사용자 생성 (이메일 기반)
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
               email: _emailController.text.trim(),
@@ -41,8 +91,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         // 2. 이메일 인증 메일 발송
         await user.sendEmailVerification();
 
-        // 3. Firestore에 사용자 추가 정보 저장
+        // 3. Firestore에 사용자 추가 정보 저장 (username 포함)
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'username': _idController.text.trim(), // ID 저장
           'nickname': _nicknameController.text.trim(),
           'address': _addressController.text.trim(),
           'level': 1,
@@ -83,9 +134,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         SnackBar(content: Text(message)),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("오류가 발생했습니다: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("오류가 발생했습니다: $e")),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -110,17 +163,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: "이메일 (실제 사용 가능한 메일)",
-                hintText: "example@email.com",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
-              ),
-              keyboardType: TextInputType.emailAddress,
+
+            // 아이디 입력 및 중복 확인
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _idController,
+                    decoration: const InputDecoration(
+                      labelText: "아이디(ID)",
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.perm_identity),
+                    ),
+                    onChanged: (value) => setState(() => _isIdChecked = false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _checkIdDuplicate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _isIdChecked ? Colors.green : Colors.grey[700],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 15),
+                  ),
+                  child: Text(_isIdChecked ? "확인됨" : "중복확인"),
+                ),
+              ],
             ),
             const SizedBox(height: 15),
+
             TextField(
               controller: _passwordController,
               decoration: const InputDecoration(
@@ -129,6 +202,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 prefixIcon: Icon(Icons.lock),
               ),
               obscureText: true,
+            ),
+            const SizedBox(height: 15),
+
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: "이메일 (본인 인증용)",
+                hintText: "example@email.com",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.email),
+              ),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 15),
             TextField(
