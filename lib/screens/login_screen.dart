@@ -12,28 +12,54 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
+  final _idController = TextEditingController(); // ID Controller (Email 대체)
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _login() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (_idController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("이메일과 비밀번호를 입력해주세요.")),
+        const SnackBar(content: Text("아이디와 비밀번호를 입력해주세요.")),
       );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      // 1. 로그인 시도
+      // 1. ID로 이메일 찾기 (Firestore Query)
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: _idController.text.trim())
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("존재하지 않는 아이디입니다.")),
+          );
+        }
+        return;
+      }
+
+      final email = snapshot.docs.first.data()['email'] as String?;
+      if (email == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("계정 정보에 오류가 있습니다 (이메일 누락).")),
+          );
+        }
+        return;
+      }
+
+      // 2. 이메일 + 비밀번호로 로그인
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text.trim(),
       );
 
-      // 2. 이메일 인증 여부 확인
+      // 3. 이메일 인증 여부 확인
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
         await FirebaseAuth.instance.signOut(); // 로그아웃
         if (mounted) {
@@ -50,11 +76,16 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) Navigator.pop(context); // 성공 시 닫기
     } on FirebaseAuthException catch (e) {
       String message = "로그인 실패: ${e.message}";
-      if (e.code == 'user-not-found') message = "존재하지 않는 계정입니다.";
       if (e.code == 'wrong-password') message = "비밀번호가 틀렸습니다.";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("로그인 중 오류가 발생했습니다: $e")),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -69,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _idController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -108,13 +139,12 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 40),
 
             TextField(
-              controller: _emailController,
+              controller: _idController,
               decoration: const InputDecoration(
-                labelText: "이메일",
+                labelText: "아이디 (ID)",
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
+                prefixIcon: Icon(Icons.perm_identity),
               ),
-              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 15),
             TextField(
@@ -131,27 +161,44 @@ class _LoginScreenState extends State<LoginScreen> {
             if (_isLoading)
               const CircularProgressIndicator()
             else
-              Row(
+              Column(
                 children: [
-                  Expanded(
+                  // 로그인 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
                     child: ElevatedButton(
                       onPressed: _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text("로그인"),
+                      child: const Text("로그인",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
+                  const SizedBox(height: 15),
+
+                  // 아이디로 회원가입 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
                     child: OutlinedButton(
                       onPressed: _goToSignUp,
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text("회원가입"),
+                      child: const Text("아이디로 회원가입",
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87)),
                     ),
                   ),
                 ],
@@ -162,16 +209,14 @@ class _LoginScreenState extends State<LoginScreen> {
               Expanded(child: Divider()),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Text("또는", style: TextStyle(color: Colors.grey)),
+                child: Text("또는 소셜 로그인", style: TextStyle(color: Colors.grey)),
               ),
               Expanded(child: Divider()),
             ]),
             const SizedBox(height: 20),
 
-            // 소셜 로그인 (기존 모의 로그인 유지 - 필요 시 제거 가능)
-            SocialLoginButtons(
-              onLoginSuccess: () => Navigator.pop(context),
-            ),
+            // 소셜 로그인
+            const SocialLoginButtons(),
             const SizedBox(height: 20),
           ],
         ),
