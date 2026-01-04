@@ -15,6 +15,26 @@ class UserModel {
     required this.tickets,
     this.acceptedCount = 0, // 기본값 0
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'nickname': nickname,
+      'address': address,
+      'level': level,
+      'tickets': tickets,
+      'acceptedCount': acceptedCount,
+    };
+  }
+
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      nickname: map['nickname'] ?? '',
+      address: map['address'] ?? '',
+      level: map['level'] ?? 1,
+      tickets: map['tickets'] ?? 0,
+      acceptedCount: map['acceptedCount'] ?? 0,
+    );
+  }
 }
 
 // 전역 로그인 상태 (ValueNotifier): null이면 비로그인

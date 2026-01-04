@@ -364,6 +364,14 @@ class RankingSection extends StatelessWidget {
               ),
               child: Column(
                 children: [
+                  // 테스트용: 랭킹 데이터가 없을 때만 생성 버튼 노출 (리스트 마지막에)
+                  if (docs.isEmpty)
+                    TextButton.icon(
+                      onPressed: () => _generateMockData(user.address),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("가상 랭킹 데이터 생성 (테스트)"),
+                    ),
+
                   ...List.generate(docs.length, (index) {
                     final data = docs[index].data() as Map<String, dynamic>;
                     final nickname = data['nickname'] ?? '익명';
@@ -387,31 +395,47 @@ class RankingSection extends StatelessWidget {
                     );
                   }),
                   const Divider(),
-                  // 내 순위 표시 (상위 10위 안에 없을 경우 계산)
+                  // 내 순위 표시 Logic
+                  // 1. 이미 리스트(Top 10)에 내가 있는지 확인
                   if (!docs.any((d) => d['nickname'] == user.nickname))
-                    FutureBuilder<AggregateQuerySnapshot>(
-                      future: FirebaseFirestore.instance
-                          .collection('users')
-                          .where('address', isEqualTo: user.address)
-                          .where('acceptedCount',
-                              isGreaterThan: user.acceptedCount)
-                          .count()
-                          .get(),
-                      builder: (context, snap) {
-                        if (!snap.hasData) return const SizedBox.shrink();
-                        final myRank = (snap.data!.count ?? 0) + 1;
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.grey,
-                            child: Text("-",
-                                style: TextStyle(color: Colors.white)),
-                          ),
-                          title: const Text("나의 순위"),
-                          trailing: Text("${myRank}위"),
-                          tileColor: Colors.red[50], // 내 순위 강조
-                        );
-                      },
-                    ),
+                    // 2. 답변 수가 0개이면 '순위 밖' 처리
+                    if (user.acceptedCount == 0)
+                      ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Colors.grey,
+                          child:
+                              Text("-", style: TextStyle(color: Colors.white)),
+                        ),
+                        title: const Text("나의 순위"),
+                        trailing: const Text("순위 밖 (0회)",
+                            style: TextStyle(color: Colors.grey)),
+                        tileColor: Colors.red[50], // 내 순위 강조
+                      )
+                    else
+                      // 3. 답변을 했으나 10위권 밖인 경우 -> 정확한 순위 계산
+                      FutureBuilder<AggregateQuerySnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .where('address', isEqualTo: user.address)
+                            .where('acceptedCount',
+                                isGreaterThan: user.acceptedCount)
+                            .count()
+                            .get(),
+                        builder: (context, snap) {
+                          if (!snap.hasData) return const SizedBox.shrink();
+                          final myRank = (snap.data!.count ?? 0) + 1;
+                          return ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.grey,
+                              child: Text("-",
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                            title: const Text("나의 순위"),
+                            trailing: Text("${myRank}위"),
+                            tileColor: Colors.red[50],
+                          );
+                        },
+                      ),
                 ],
               ),
             );
@@ -435,5 +459,25 @@ class RankingSection extends StatelessWidget {
     }
 
     return Icon(Icons.emoji_events, color: color);
+  }
+
+  // 임의의 랭킹 데이터 생성 (테스트용)
+  Future<void> _generateMockData(String address) async {
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
+
+    // 기존 더미 데이터 삭제 로직 (선택사항)이 없으므로 추가만 함.
+    // 1등부터 10등까지 생성
+    for (int i = 1; i <= 10; i++) {
+      final docRef = firestore.collection('users').doc('mock_user_$i');
+      batch.set(docRef, {
+        'nickname': '우리동네보안관$i',
+        'address': address,
+        'acceptedCount': 100 - (i * 5), // 95, 90, 85 ...
+        'level': 5,
+        'tickets': 0,
+      });
+    }
+    await batch.commit();
   }
 }

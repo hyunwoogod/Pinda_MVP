@@ -26,17 +26,12 @@ void main() async {
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
-            .get();
+            .get()
+            .timeout(const Duration(seconds: 5)); // 5초 타임아웃 추가
 
         if (userDoc.exists) {
-          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
-          currentUser.value = UserModel(
-            nickname: data['nickname'] ?? "익명",
-            address: data['address'] ?? "알 수 없음",
-            level: data['level'] ?? 1,
-            tickets: data['tickets'] ?? 0,
-            acceptedCount: data['acceptedCount'] ?? 0,
-          );
+          currentUser.value =
+              UserModel.fromMap(userDoc.data() as Map<String, dynamic>);
         } else {
           // 문서가 없는 경우 (예: 기존 가입자) -> 기본값 + 닉네임은 이메일 앞부분
           currentUser.value = UserModel(
