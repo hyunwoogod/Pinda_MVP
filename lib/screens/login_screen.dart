@@ -2,6 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore Import
 import '../widgets/social_login_buttons.dart';
+import '../models/user_model.dart'; // UserModel Import
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -75,6 +76,31 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
         return;
+      }
+
+      // 4. UI 즉시 갱신을 위해 Firestore에서 정보 가져와서 currentUser 업데이트
+      if (userCredential.user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final data = userDoc.data()!;
+          currentUser.value = UserModel(
+            nickname: data['nickname'] ?? "익명",
+            address: data['address'] ?? "위치 미설정",
+            level: data['level'] ?? 1,
+            tickets: data['tickets'] ?? 0,
+          );
+        } else {
+          currentUser.value = UserModel(
+            nickname: "알 수 없음",
+            address: "알 수 없음",
+            level: 1,
+            tickets: 0,
+          );
+        }
       }
 
       if (mounted) Navigator.pop(context); // 성공 시 닫기
