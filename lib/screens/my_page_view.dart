@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth 추가
 import '../models/user_model.dart';
 import '../widgets/social_login_buttons.dart';
 import 'login_screen.dart';
