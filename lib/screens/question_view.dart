@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart'; // Geolocator Import
 import '../widgets/naver_map_web.dart';
 import '../models/user_model.dart';
 import 'login_screen.dart';
@@ -20,8 +21,8 @@ class _QuestionViewState extends State<QuestionView> {
 
   // 지도 관련
   NaverMapWebController? _mapController;
-  double _selectedLat = 37.5973;
-  double _selectedLng = 127.0583;
+  double _selectedLat = 37.5665; // 기본값: 서울 시청
+  double _selectedLng = 126.9780;
 
   // 카테고리
   String _selectedCategory = '';
@@ -32,6 +33,50 @@ class _QuestionViewState extends State<QuestionView> {
     '날씨/현장',
     '사건/목격',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _setImageToCurrentLocation();
+  }
+
+  Future<void> _setImageToCurrentLocation() async {
+    try {
+      // 1. 권한 확인
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      // 2. 위치 가져오기
+      Position position = await Geolocator.getCurrentPosition();
+
+      if (mounted) {
+        setState(() {
+          _selectedLat = position.latitude;
+          _selectedLng = position.longitude;
+        });
+
+        // 3. 지도 이동 및 주소 변환
+        _mapController?.moveCamera(position.latitude, position.longitude);
+        _mapController?.updateMarkers([
+          NaverMapMarker(
+            id: 'selected',
+            latitude: position.latitude,
+            longitude: position.longitude,
+          ),
+        ]);
+        _reverseGeocode(position.latitude, position.longitude);
+      }
+    } catch (e) {
+      debugPrint("Location init error: $e");
+    }
+  }
 
   @override
   void dispose() {

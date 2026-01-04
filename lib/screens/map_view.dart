@@ -58,6 +58,11 @@ class _MapViewState extends State<MapView> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
+
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
+      _moveToCurrentLocation(); // 권한 있으면 바로 내 위치로 이동
+    }
   }
 
   Future<void> _moveToCurrentLocation() async {
