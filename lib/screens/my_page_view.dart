@@ -305,30 +305,66 @@ class MyPageView extends StatelessWidget {
             }
           }
 
-          // 동/읍/면 추출 헬퍼
-          String extractDong(String fullAddress) {
-            // Nominatim 등에서 오는 주소는 콤마로 구분된 경우가 많음
-            final parts = fullAddress.split(',').map((e) => e.trim()).toList();
+          // 주소 정제 함수 (도/시/군/구/동/읍/면 추출 및 정렬)
+          String extractCleanAddress(String fullAddress) {
+            // 1. 콤마나 공백으로 분리
+            // Nominatim 예: "Yeoksam-dong, Gangnam-gu, Seoul, ..." (역순)
+            // 또는 "경기도 성남시 분당구 ..." (정순)
+            // 일단 모든 단어를 쪼갬
+            final parts = fullAddress.split(RegExp(r'[, ]+'));
 
-            // 1. '동', '읍', '면'으로 끝나는 단어 찾기
+            String? doPart;
+            String? siPart;
+            String? gunPart;
+            String? guPart;
+            String? dongPart; // 동, 읍, 면, 가
+
             for (final part in parts) {
-              if (part.endsWith('동') ||
-                  part.endsWith('읍') ||
-                  part.endsWith('면')) {
-                return part;
-              }
-              // 공백으로 분리해서도 확인 (예: "Seoul Gangnam-gu Yeoksam-dong")
-              final words = part.split(' ');
-              for (final word in words) {
-                if (word.endsWith('동') ||
-                    word.endsWith('읍') ||
-                    word.endsWith('면')) {
-                  return word;
-                }
+              final trimmed = part.trim();
+              if (trimmed.isEmpty) continue;
+
+              // 한글 숫자 포함 등이 있을 수 있으므로 단순화해서 체크
+              // 주소 끝자리 기준 분류
+              if (trimmed.endsWith('도')) {
+                doPart = trimmed;
+              } else if (trimmed.endsWith('시')) {
+                siPart = trimmed;
+              } else if (trimmed.endsWith('군')) {
+                gunPart = trimmed;
+              } else if (trimmed.endsWith('구')) {
+                guPart = trimmed;
+              } else if (trimmed.endsWith('동') ||
+                  trimmed.endsWith('읍') ||
+                  trimmed.endsWith('면') ||
+                  trimmed.endsWith('가')) {
+                // 동이 여러개일 경우 (예: 역삼1동) 가장 마지막 것 또는 구체적인 것 사용?
+                // 보통 Nominatim은 '역삼동' 하나만 주거나 함.
+                // 이미 찾았으면 덮어쓰기? (보통 앞쪽에 구체적인게 나옴 vs 뒤쪽에 나옴)
+                // Nominatim 역순(상세->광역)일 경우: "Yeoksam-dong, ..." -> 첫번째가 동.
+                // 리스트 순회 순서에 따라 다름.
+                // 여기서는 '가장 상세한 주소' 하나만 잡으면 됨.
+                // 만약 "역삼1동"과 "역삼동"이 같이 있다면?
+                // 일단 먼저 발견된 것을 우선하되, 루프 돌면서 갱신?
+                // Nominatim raw string 순서에 의존하기보다, 그냥 발견되면 저장.
+                // 단, '동'이 여러번 나오면? -> 보통 주소에 동이 두번 들어가지 않음 (법정동, 행정동 겹칠때 제외)
+                if (dongPart == null) dongPart = trimmed;
               }
             }
-            // 2. 못 찾으면 첫 번째 파트(가장 구체적인 지명) 반환
-            return parts.isNotEmpty ? parts.first : fullAddress;
+
+            // 조합 (위계 순서: 도 > 시 > 군 > 구 > 동)
+            final buffer = StringBuffer();
+            if (doPart != null) buffer.write('$doPart ');
+            if (siPart != null) buffer.write('$siPart ');
+            if (gunPart != null) buffer.write('$gunPart ');
+            if (guPart != null) buffer.write('$guPart ');
+            if (dongPart != null) buffer.write('$dongPart');
+
+            final result = buffer.toString().trim();
+
+            // 만약 추출된게 하나도 없으면 (외국 주소 등) 원본의 앞부분 반환
+            return result.isNotEmpty
+                ? result
+                : (parts.isNotEmpty ? parts.first : fullAddress);
           }
 
           return AlertDialog(
@@ -406,7 +442,8 @@ class MyPageView extends StatelessWidget {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis),
                               onTap: () {
-                                final extracted = extractDong(item.address);
+                                final extracted =
+                                    extractCleanAddress(item.address);
                                 setState(() {
                                   selectedAddress = extracted;
                                   // 검색 결과는 숨기거나 유지 (여기선 유지하되 선택값 업데이트)
