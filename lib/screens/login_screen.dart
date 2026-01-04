@@ -14,6 +14,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _idController = TextEditingController(); // ID Controller (Email 대체)
   final _passwordController = TextEditingController();
+
+  final _idFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+
   bool _isLoading = false;
 
   Future<void> _login() async {
@@ -102,6 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _idController.dispose();
     _passwordController.dispose();
+    _idFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -140,24 +146,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
             TextField(
               controller: _idController,
+              focusNode: _idFocusNode,
+              autofocus: true, // 화면 열리면 바로 포커스
               decoration: const InputDecoration(
                 labelText: "아이디 (ID)",
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.perm_identity),
               ),
-              textInputAction: TextInputAction.next, // 다음 필드로 이동
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_passwordFocusNode);
+              },
             ),
             const SizedBox(height: 15),
             TextField(
               controller: _passwordController,
+              focusNode: _passwordFocusNode,
               decoration: const InputDecoration(
                 labelText: "비밀번호",
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.lock),
               ),
               obscureText: true,
-              textInputAction: TextInputAction.done, // 완료 키 표시
-              onSubmitted: (_) => _login(), // 엔터 누르면 로그인 실행
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _login(),
+              onEditingComplete: () => _login(), // 엔터 키 동작 보장
             ),
             const SizedBox(height: 20),
 
