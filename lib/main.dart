@@ -94,13 +94,34 @@ class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   // 탭별 화면 정의
-  // (주의: screens 폴더 안에 아래 파일들이 실제로 있어야 합니다)
   final List<Widget> _pages = const [
     MapView(), // 0: 지도 (홈)
     QuestionView(), // 1: 질문
     ApplyView(), // 2: 응모
     MyPageView(), // 3: 마이페이지
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // 로그인 상태 변화 감지하여 지도 탭으로 이동
+    currentUser.addListener(_handleUserStateChange);
+  }
+
+  @override
+  void dispose() {
+    currentUser.removeListener(_handleUserStateChange);
+    super.dispose();
+  }
+
+  void _handleUserStateChange() {
+    // 로그인이 감지되면(null -> User) 지도 탭으로 이동
+    if (currentUser.value != null) {
+      setState(() {
+        _selectedIndex = 0; // 지도 탭으로 이동
+      });
+    }
+  }
 
   void changeTab(int index) {
     setState(() {
@@ -134,6 +155,33 @@ class MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
+        actions: [
+          // 로그인 시 프로필 아이콘 표시
+          ValueListenableBuilder<UserModel?>(
+            valueListenable: currentUser,
+            builder: (context, user, _) {
+              if (user == null) return const SizedBox.shrink(); // 비로그인 시 숨김
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: GestureDetector(
+                  onTap: () {
+                    // 프로필 아이콘 클릭 시 마이페이지로 이동
+                    setState(() {
+                      _selectedIndex = 3;
+                    });
+                  },
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.red.withOpacity(0.1),
+                    child:
+                        const Icon(Icons.person, size: 24, color: Colors.red),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       // 현재 선택된 탭의 화면을 보여줌
       body: IndexedStack(
