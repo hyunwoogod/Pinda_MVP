@@ -159,28 +159,38 @@ class MainScreenState extends State<MainScreen> {
         elevation: 0,
         foregroundColor: Colors.black,
         actions: [
-          // 로그인 시 프로필 아이콘 표시
-          ValueListenableBuilder<UserModel?>(
-            valueListenable: currentUser,
-            builder: (context, user, _) {
-              if (user == null) return const SizedBox.shrink(); // 비로그인 시 숨김
+          // 로그인 시 프로필 아이콘 표시 (StreamBuilder로 즉시 반응)
+          StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData)
+                return const SizedBox.shrink(); // 비로그인 시 숨김
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: GestureDetector(
-                  onTap: () {
-                    // 프로필 아이콘 클릭 시 마이페이지로 이동
-                    setState(() {
-                      _selectedIndex = 3;
-                    });
-                  },
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.red.withOpacity(0.1),
-                    child:
-                        const Icon(Icons.person, size: 24, color: Colors.red),
-                  ),
-                ),
+              // Auth 로그인 확인됨 -> 아이콘 표시 (프로필 로딩 중엔 회색)
+              return ValueListenableBuilder<UserModel?>(
+                valueListenable: currentUser,
+                builder: (context, user, _) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedIndex = 3; // 마이페이지로 이동
+                        });
+                      },
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.red.withOpacity(0.1),
+                        child: Icon(
+                          Icons.person,
+                          size: 24,
+                          // 유저 정보 로딩 완료되면 빨간색, 대기 중이면 회색
+                          color: user != null ? Colors.red : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),
