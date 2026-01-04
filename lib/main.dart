@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'dart:async'; // StreamSubscription
 import 'firebase_options.dart';
 import 'screens/apply_view.dart';
 
@@ -101,27 +102,29 @@ class MainScreenState extends State<MainScreen> {
     MyPageView(), // 3: 마이페이지
   ];
 
+  StreamSubscription<User?>? _authSubscription;
+
   @override
   void initState() {
     super.initState();
-    // 로그인 상태 변화 감지하여 지도 탭으로 이동
-    currentUser.addListener(_handleUserStateChange);
+    // Auth 상태 변화 감지하여 즉시 지도 탭으로 이동 (Firestore 대기 시간 제거)
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        // 이미 로그인 상태면 지도로 이동 (중복 호출 방지 로직 필요하면 추가)
+        setState(() {
+          _selectedIndex = 0;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
-    currentUser.removeListener(_handleUserStateChange);
+    _authSubscription?.cancel();
     super.dispose();
   }
 
-  void _handleUserStateChange() {
-    // 로그인이 감지되면(null -> User) 지도 탭으로 이동
-    if (currentUser.value != null) {
-      setState(() {
-        _selectedIndex = 0; // 지도 탭으로 이동
-      });
-    }
-  }
+  // changeTab, _onItemTapped 등 기존 함수 유지...
 
   void changeTab(int index) {
     setState(() {

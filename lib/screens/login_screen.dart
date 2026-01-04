@@ -29,6 +29,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
+    FocusScope.of(context).unfocus(); // 키보드 내리기
+
     try {
       // 1. ID로 이메일 찾기 (Firestore Query)
       final snapshot = await FirebaseFirestore.instance
