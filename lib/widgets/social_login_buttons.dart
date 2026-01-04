@@ -21,33 +21,13 @@ class SocialLoginButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 아이디로 회원가입 버튼
+        // 카카오 로그인 버튼
         InkWell(
-          onTap: _performLogin,
-          child: Container(
-            width: double.infinity,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Text(
-                "아이디로 회원가입",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 15),
-
-        // 카카오 로그인 버튼 (Mock)
-        InkWell(
-          onTap: _performLogin,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("카카오 로그인 서비스는 준비 중입니다.")),
+            );
+          },
           child: Container(
             width: double.infinity,
             height: 50,
@@ -61,7 +41,7 @@ class SocialLoginButtons extends StatelessWidget {
                 const Icon(Icons.chat_bubble, color: Colors.black87, size: 20),
                 const SizedBox(width: 10),
                 const Text(
-                  "카카오로 3초만에 시작하기",
+                  "카카오로 시작하기",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -74,9 +54,13 @@ class SocialLoginButtons extends StatelessWidget {
         ),
         const SizedBox(height: 15),
 
-        // 구글 로그인 버튼 (Mock)
+        // 구글 로그인 버튼
         InkWell(
-          onTap: _performLogin,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("구글 로그인 서비스는 준비 중입니다.")),
+            );
+          },
           child: Container(
             width: double.infinity,
             height: 50,
@@ -103,9 +87,13 @@ class SocialLoginButtons extends StatelessWidget {
         ),
         const SizedBox(height: 15),
 
-        // Apple 로그인 버튼 (Mock)
+        // Apple 로그인 버튼
         InkWell(
-          onTap: _performLogin,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Apple 로그인 서비스는 준비 중입니다.")),
+            );
+          },
           child: Container(
             width: double.infinity,
             height: 50,

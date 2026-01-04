@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../widgets/social_login_buttons.dart';
+import 'login_screen.dart';
 
 class MyPageView extends StatelessWidget {
   const MyPageView({super.key});
@@ -40,6 +41,44 @@ class MyPageView extends StatelessWidget {
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 60),
+
+                  // 이메일 로그인 버튼 (LoginScreen 이동)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        "이메일로 로그인 / 회원가입",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  const Row(children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text("또는 소셜 로그인",
+                          style: TextStyle(color: Colors.grey)),
+                    ),
+                    Expanded(child: Divider()),
+                  ]),
+                  const SizedBox(height: 15),
 
                   // 공통 소셜 로그인 버튼 위젯 (로그인 성공 시 화면 유지 -> 즉시 프로필 전환됨)
                   const SocialLoginButtons(),
