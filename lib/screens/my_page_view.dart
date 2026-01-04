@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../widgets/social_login_buttons.dart';
 import 'login_screen.dart';
+import '../widgets/naver_map_web.dart';
 
 class MyPageView extends StatelessWidget {
   const MyPageView({super.key});
@@ -261,61 +262,215 @@ class MyPageView extends StatelessWidget {
   }
 
   void _showEditProfileDialog(BuildContext context, UserModel user) {
+    // 다이얼로그 내부 상태 관리를 위한 변수들은 StatefulBuilder 안에서 관리하면 좋지만,
+    // 초기값 설정 등을 위해 여기서 선언 후 Builder 안에서 참조/업데이트
     final nicknameController = TextEditingController(text: user.nickname);
-    final addressController = TextEditingController(text: user.address);
+    final searchController = TextEditingController(); // 검색어 입력
+
+    // 초기값: 현재 사용자의 주소가 있으면 그것을 사용
+    String? selectedAddress = user.address.isNotEmpty ? user.address : null;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("프로필 수정"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nicknameController,
-              decoration: const InputDecoration(labelText: "닉네임"),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: addressController,
-              decoration: const InputDecoration(labelText: "우리 동네 (예: 역삼동)"),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text("취소")),
-          ElevatedButton(
-            onPressed: () async {
-              final newNickname = nicknameController.text.trim();
-              final newAddress = addressController.text.trim();
+      builder: (context) {
+        bool isSearching = false;
+        List<NaverGeocodingResult> searchResults = [];
 
-              if (newNickname.isNotEmpty && newAddress.isNotEmpty) {
-                final uid = FirebaseAuth.instance.currentUser?.uid;
-                if (uid != null) {
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
-                      .update({
-                    'nickname': newNickname,
-                    'address': newAddress,
-                  });
-                  // 로컬 상태 강제 업데이트
-                  currentUser.value = UserModel(
-                    nickname: newNickname,
-                    address: newAddress,
-                    level: user.level,
-                    tickets: user.tickets,
-                    acceptedCount: user.acceptedCount,
-                  );
-                }
-                if (context.mounted) Navigator.pop(context);
+        return StatefulBuilder(builder: (context, setState) {
+          // 주소 검색 함수
+          Future<void> searchAddress() async {
+            final query = searchController.text.trim();
+            if (query.isEmpty) return;
+
+            // 키보드 내리기
+            FocusScope.of(context).unfocus();
+
+            setState(() {
+              isSearching = true;
+              searchResults.clear();
+            });
+
+            try {
+              // NaverGeocodingService (Nominatim Wrapper) 호출
+              final results = await NaverGeocodingService.geocode(query);
+              setState(() {
+                searchResults = results;
+              });
+            } catch (e) {
+              print("Error searching address: $e");
+            } finally {
+              setState(() {
+                isSearching = false;
+              });
+            }
+          }
+
+          // 동/읍/면 추출 헬퍼
+          String extractDong(String fullAddress) {
+            // Nominatim 등에서 오는 주소는 콤마로 구분된 경우가 많음
+            final parts = fullAddress.split(',').map((e) => e.trim()).toList();
+
+            // 1. '동', '읍', '면'으로 끝나는 단어 찾기
+            for (final part in parts) {
+              if (part.endsWith('동') ||
+                  part.endsWith('읍') ||
+                  part.endsWith('면')) {
+                return part;
               }
-            },
-            child: const Text("저장"),
-          ),
-        ],
-      ),
+              // 공백으로 분리해서도 확인 (예: "Seoul Gangnam-gu Yeoksam-dong")
+              final words = part.split(' ');
+              for (final word in words) {
+                if (word.endsWith('동') ||
+                    word.endsWith('읍') ||
+                    word.endsWith('면')) {
+                  return word;
+                }
+              }
+            }
+            // 2. 못 찾으면 첫 번째 파트(가장 구체적인 지명) 반환
+            return parts.isNotEmpty ? parts.first : fullAddress;
+          }
+
+          return AlertDialog(
+            title: const Text("프로필 수정"),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nicknameController,
+                    decoration: const InputDecoration(labelText: "닉네임"),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 주소 검색 영역
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          decoration: const InputDecoration(
+                            labelText: "동네 검색 (예: 제주도)",
+                            hintText: "동/읍/면 이름을 입력하세요",
+                            isDense: true,
+                          ),
+                          onSubmitted: (_) => searchAddress(),
+                        ),
+                      ),
+                      IconButton(
+                        icon: isSearching
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.search),
+                        onPressed: isSearching ? null : searchAddress,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // 선택된 주소 표시
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.grey[100],
+                    child: Text(
+                      "선택된 위치: ${selectedAddress ?? '없음'}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+
+                  // 검색 결과 리스트 (결과가 있을 때만 표시)
+                  if (searchResults.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    const Divider(),
+                    const Text("검색 결과 (클릭하여 선택)",
+                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Flexible(
+                      child: SizedBox(
+                        height: 150, // 높이 제한
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: searchResults.length,
+                          itemBuilder: (context, index) {
+                            final item = searchResults[index];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.location_on,
+                                  size: 16, color: Colors.grey),
+                              title: Text(item.address,
+                                  style: const TextStyle(fontSize: 13),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                              onTap: () {
+                                final extracted = extractDong(item.address);
+                                setState(() {
+                                  selectedAddress = extracted;
+                                  // 검색 결과는 숨기거나 유지 (여기선 유지하되 선택값 업데이트)
+                                  // searchResults.clear(); // 원하면 닫기 가능
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ] else if (isSearching) ...[
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child:
+                          Text("검색 중...", style: TextStyle(color: Colors.grey)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("취소")),
+              ElevatedButton(
+                onPressed: () async {
+                  final newNickname = nicknameController.text.trim();
+                  final newAddress = selectedAddress;
+
+                  if (newNickname.isNotEmpty &&
+                      newAddress != null &&
+                      newAddress.isNotEmpty) {
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                    if (uid != null) {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(uid)
+                          .update({
+                        'nickname': newNickname,
+                        'address': newAddress,
+                      });
+                      // 로컬 상태 강제 업데이트
+                      currentUser.value = UserModel(
+                        nickname: newNickname,
+                        address: newAddress,
+                        level: user.level,
+                        tickets: user.tickets,
+                        acceptedCount: user.acceptedCount,
+                      );
+                    }
+                    if (context.mounted) Navigator.pop(context);
+                  } else {
+                    // 입력 미완료 시 알림 (선택사항)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("닉네임과 주소를 모두 설정해주세요.")));
+                  }
+                },
+                child: const Text("저장"),
+              ),
+            ],
+          );
+        });
+      },
     );
   }
 }
@@ -334,112 +489,70 @@ class RankingSection extends StatelessWidget {
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .where('address', isEqualTo: user.address)
-              .orderBy('acceptedCount', descending: true)
-              .limit(10)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 5,
+                spreadRadius: 2,
+              )
+            ],
+          ),
+          child: Column(
+            children: [
+              // 1~10위 Mock Data 표시
+              ...List.generate(10, (index) {
+                final rank = index + 1;
+                final nickname = "우리동네보안관$rank"; // 가상 닉네임
+                final count = 100 - (rank * 5); // 가상 횟수
+                final isMe = false; // Mock에서는 나를 제외 (아래에서 별도 표시)
 
-            final docs = snapshot.data!.docs;
-            if (docs.isEmpty) return const Text("아직 랭킹 정보가 없습니다.");
+                return ListTile(
+                  leading: _buildRankIcon(rank),
+                  title: Text(
+                    nickname,
+                    style: TextStyle(
+                        fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
+                  ),
+                  trailing: Text(
+                    "$count회 해결",
+                    style: const TextStyle(
+                        color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                  tileColor: isMe ? Colors.red[50] : null,
+                );
+              }),
+              const Divider(),
 
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 5,
-                    spreadRadius: 2,
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  // 테스트용: 랭킹 데이터가 없을 때만 생성 버튼 노출 (리스트 마지막에)
-                  if (docs.isEmpty)
-                    TextButton.icon(
-                      onPressed: () => _generateMockData(user.address),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text("가상 랭킹 데이터 생성 (테스트)"),
-                    ),
-
-                  ...List.generate(docs.length, (index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    final nickname = data['nickname'] ?? '익명';
-                    final count = data['acceptedCount'] ?? 0;
-                    final isMe = nickname == user.nickname;
-
-                    return ListTile(
-                      leading: _buildRankIcon(index + 1),
-                      title: Text(
-                        nickname,
-                        style: TextStyle(
-                            fontWeight:
-                                isMe ? FontWeight.bold : FontWeight.normal),
-                      ),
-                      trailing: Text(
-                        "$count회 해결",
-                        style: const TextStyle(
-                            color: Colors.red, fontWeight: FontWeight.bold),
-                      ),
-                      tileColor: isMe ? Colors.red[50] : null,
-                    );
-                  }),
-                  const Divider(),
-                  // 내 순위 표시 Logic
-                  // 1. 이미 리스트(Top 10)에 내가 있는지 확인
-                  if (!docs.any((d) => d['nickname'] == user.nickname))
-                    // 2. 답변 수가 0개이면 '순위 밖' 처리
-                    if (user.acceptedCount == 0)
-                      ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.grey,
-                          child:
-                              Text("-", style: TextStyle(color: Colors.white)),
-                        ),
-                        title: const Text("나의 순위"),
-                        trailing: const Text("순위 밖 (0회)",
-                            style: TextStyle(color: Colors.grey)),
-                        tileColor: Colors.red[50], // 내 순위 강조
-                      )
-                    else
-                      // 3. 답변을 했으나 10위권 밖인 경우 -> 정확한 순위 계산
-                      FutureBuilder<AggregateQuerySnapshot>(
-                        future: FirebaseFirestore.instance
-                            .collection('users')
-                            .where('address', isEqualTo: user.address)
-                            .where('acceptedCount',
-                                isGreaterThan: user.acceptedCount)
-                            .count()
-                            .get(),
-                        builder: (context, snap) {
-                          if (!snap.hasData) return const SizedBox.shrink();
-                          final myRank = (snap.data!.count ?? 0) + 1;
-                          return ListTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Colors.grey,
-                              child: Text("-",
-                                  style: TextStyle(color: Colors.white)),
-                            ),
-                            title: const Text("나의 순위"),
-                            trailing: Text("${myRank}위"),
-                            tileColor: Colors.red[50],
-                          );
-                        },
-                      ),
-                ],
-              ),
-            );
-          },
+              // 내 순위 표시 (Mock: 실제 내 acceptedCount가 0이면 순위 밖, 아니면 임의의 순위 표시)
+              if (user.acceptedCount == 0)
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.grey,
+                    child: Text("-", style: TextStyle(color: Colors.white)),
+                  ),
+                  title: const Text("나의 순위"),
+                  trailing: const Text("순위 밖 (0회)",
+                      style: TextStyle(color: Colors.grey)),
+                  tileColor: Colors.red[50], // 내 순위 강조
+                )
+              else
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.grey,
+                    child: Text("-", style: TextStyle(color: Colors.white)),
+                  ),
+                  title: const Text("나의 순위"),
+                  trailing: Text(
+                      "${10 + (user.level * 2)}위 (예상)"), // 랭킹 시스템 연동 전 임의 표시
+                  tileColor: Colors.red[50],
+                ),
+            ],
+          ),
         ),
       ],
     );
