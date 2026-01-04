@@ -1,6 +1,8 @@
 # This is a generated file; do not edit or check into version control.
 cloud_firestore=C:\\Users\\ecogu\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\cloud_firestore-6.1.1\\
 cloud_firestore_web=C:\\Users\\ecogu\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\cloud_firestore_web-5.1.1\\
+firebase_auth=C:\\Users\\ecogu\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\firebase_auth-6.1.3\\
+firebase_auth_web=C:\\Users\\ecogu\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\firebase_auth_web-6.1.1\\
 firebase_core=C:\\Users\\ecogu\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\firebase_core-4.3.0\\
 firebase_core_web=C:\\Users\\ecogu\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\firebase_core_web-3.3.1\\
 geolocator=C:\\Users\\ecogu\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\geolocator-10.1.1\\

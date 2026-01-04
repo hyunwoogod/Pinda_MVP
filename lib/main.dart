@@ -7,11 +7,30 @@ import 'screens/map_view.dart';
 import 'screens/my_page_view.dart';
 import 'screens/question_view.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'models/user_model.dart'; // UserModel Import
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // 로그인 상태 유지 리스너 등
+  FirebaseAuth.instance.authStateChanges().listen((User? user) {
+    if (user != null) {
+      // 로그인 됨 -> UserModel 생성 (닉네임은 이메일 앞부분 사용)
+      currentUser.value = UserModel(
+        nickname: user.email?.split('@')[0] ?? "익명",
+        level: 1,
+        tickets: 0,
+      );
+    } else {
+      // 로그아웃 됨
+      currentUser.value = null;
+    }
+  });
+
   runApp(const MyApp());
 }
 
