@@ -3,11 +3,13 @@ import 'package:flutter/foundation.dart';
 // --- 데이터 모델 & 상태 관리 ---
 class UserModel {
   final String nickname;
+  final String address; // 주소 추가
   final int level;
   final int tickets;
 
   UserModel({
     required this.nickname,
+    required this.address,
     required this.level,
     required this.tickets,
   });

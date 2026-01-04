@@ -10,6 +10,7 @@ class SocialLoginButtons extends StatelessWidget {
     // 모의 로그인 처리
     currentUser.value = UserModel(
       nickname: "순대감별사",
+      address: "서울시 강남구",
       level: 3,
       tickets: 5,
     );

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/social_login_buttons.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,10 +25,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // 1. 로그인 시도
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      // 2. 이메일 인증 여부 확인
+      if (userCredential.user != null && !userCredential.user!.emailVerified) {
+        await FirebaseAuth.instance.signOut(); // 로그아웃
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("이메일 인증이 완료되지 않았습니다.\n메일함을 확인해주세요."),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
       if (mounted) Navigator.pop(context); // 성공 시 닫기
     } on FirebaseAuthException catch (e) {
       String message = "로그인 실패: ${e.message}";
@@ -41,36 +59,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signUp() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("이메일과 비밀번호를 입력해주세요.")),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("회원가입 성공! 로그인되었습니다.")),
-        );
-        Navigator.pop(context);
-      }
-    } on FirebaseAuthException catch (e) {
-      String message = "회원가입 실패: ${e.message}";
-      if (e.code == 'email-already-in-use') message = "이미 사용 중인 이메일입니다.";
-      if (e.code == 'weak-password') message = "비밀번호는 6자리 이상이어야 합니다.";
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  void _goToSignUp() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SignUpScreen()),
+    );
   }
 
   @override
@@ -153,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _signUp,
+                      onPressed: _goToSignUp,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 15),
                       ),

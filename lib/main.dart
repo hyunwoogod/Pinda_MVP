@@ -8,6 +8,7 @@ import 'screens/my_page_view.dart';
 import 'screens/question_view.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
 import 'models/user_model.dart'; // UserModel Import
 
 void main() async {
@@ -17,14 +18,42 @@ void main() async {
   );
 
   // 로그인 상태 유지 리스너 등
-  FirebaseAuth.instance.authStateChanges().listen((User? user) {
+  FirebaseAuth.instance.authStateChanges().listen((User? user) async {
     if (user != null) {
-      // 로그인 됨 -> UserModel 생성 (닉네임은 이메일 앞부분 사용)
-      currentUser.value = UserModel(
-        nickname: user.email?.split('@')[0] ?? "익명",
-        level: 1,
-        tickets: 0,
-      );
+      // 1. Firestore에서 사용자 정보 가져오기
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+          currentUser.value = UserModel(
+            nickname: data['nickname'] ?? "익명",
+            address: data['address'] ?? "알 수 없음",
+            level: data['level'] ?? 1,
+            tickets: data['tickets'] ?? 0,
+          );
+        } else {
+          // 문서가 없는 경우 (예: 기존 가입자) -> 기본값 + 닉네임은 이메일 앞부분
+          currentUser.value = UserModel(
+            nickname: user.email?.split('@')[0] ?? "익명",
+            address: "위치 미설정",
+            level: 1,
+            tickets: 0,
+          );
+        }
+      } catch (e) {
+        print("유저 정보 로드 실패: $e");
+        // 에러 시에도 최소한 로그인 상태는 유지
+        currentUser.value = UserModel(
+          nickname: user.email?.split('@')[0] ?? "익명",
+          address: "오류 발생",
+          level: 1,
+          tickets: 0,
+        );
+      }
     } else {
       // 로그아웃 됨
       currentUser.value = null;
