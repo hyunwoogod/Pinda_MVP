@@ -342,21 +342,37 @@ class _QuestionViewState extends State<QuestionView> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: NaverMapWeb(
-                      latitude: _selectedLat,
-                      longitude: _selectedLng,
-                      zoom: 16,
-                      markers: [
-                        NaverMapMarker(
-                          id: 'selected',
+                    child: Stack(
+                      children: [
+                        NaverMapWeb(
                           latitude: _selectedLat,
                           longitude: _selectedLng,
+                          zoom: 16,
+                          markers: [
+                            NaverMapMarker(
+                              id: 'selected',
+                              latitude: _selectedLat,
+                              longitude: _selectedLng,
+                            ),
+                          ],
+                          onMapReady: (controller) {
+                            _mapController = controller;
+                          },
+                          onMapTapped: _onMapTap,
+                        ),
+                        Positioned(
+                          bottom: 10,
+                          right: 10,
+                          child: FloatingActionButton.small(
+                            heroTag: 'question_location_btn', // Hero tag 충돌 방지
+                            onPressed: _setImageToCurrentLocation,
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.red,
+                            shape: const CircleBorder(),
+                            child: const Icon(Icons.my_location),
+                          ),
                         ),
                       ],
-                      onMapReady: (controller) {
-                        _mapController = controller;
-                      },
-                      onMapTapped: _onMapTap,
                     ),
                   ),
                 ),
