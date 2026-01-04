@@ -7,12 +7,14 @@ class MyPageView extends StatelessWidget {
   const MyPageView({super.key});
 
   @override
+  @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<UserModel?>(
-      valueListenable: currentUser,
-      builder: (context, user, child) {
-        if (user == null) {
-          // 비로그인 상태 UI (Embedded Login)
+    // 1. Auth 상태 감지 (StreamBuilder)
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnapshot) {
+        // 2. Auth 데이터가 없으면 (비로그인 상태) -> 로그아웃 UI
+        if (!authSnapshot.hasData) {
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
@@ -20,7 +22,7 @@ class MyPageView extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 50), // 상단 여백 추가
+                  const SizedBox(height: 50),
                   const Icon(
                     Icons.location_on, // Pinda PIN
                     size: 80,
@@ -80,7 +82,7 @@ class MyPageView extends StatelessWidget {
                   ]),
                   const SizedBox(height: 15),
 
-                  // 공통 소셜 로그인 버튼 위젯 (로그인 성공 시 화면 유지 -> 즉시 프로필 전환됨)
+                  // 공통 소셜 로그인 버튼 위젯
                   const SocialLoginButtons(),
 
                   const SizedBox(height: 40),
@@ -93,119 +95,135 @@ class MyPageView extends StatelessWidget {
           );
         }
 
-        // 로그인 상태 UI
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 40),
-                Row(
+        // 3. Auth는 있지만 프로필 데이터(User Model) 확인 (ValueListenableBuilder)
+        return ValueListenableBuilder<UserModel?>(
+          valueListenable: currentUser,
+          builder: (context, user, child) {
+            // Auth는 있는데 UserModel이 아직 로드되지 않음 -> 로딩 화면
+            if (user == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // 4. 로그인 완료 (프로필 표시)
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
-                    ),
-                    const SizedBox(width: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 40),
+                    Row(
                       children: [
-                        Text(
-                          "${user.nickname} 님",
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        const CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.red,
+                          child:
+                              Icon(Icons.person, size: 50, color: Colors.white),
                         ),
-                        Text(
-                          "LV.${user.level} 동네 보안관",
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        const SizedBox(width: 20),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "${user.nickname} 님",
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "LV.${user.level} 동네 보안관",
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-                const Text(
-                  "나의 경험치 (다음 레벨까지 30%)",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                const LinearProgressIndicator(
-                  value: 0.7,
-                  backgroundColor: Colors.grey,
-                  color: Colors.red,
-                  minHeight: 10,
-                ),
-                const SizedBox(height: 30),
-                const Text(
-                  "🏆 획득한 배지",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildBadge(Icons.star, "첫 답변", Colors.yellow),
-                    _buildBadge(
-                      Icons.local_fire_department,
-                      "핫플 마스터",
-                      Colors.red,
+                    const SizedBox(height: 30),
+                    const Text(
+                      "나의 경험치 (다음 레벨까지 30%)",
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    _buildBadge(Icons.verified, "신뢰도 100%", Colors.green),
+                    const SizedBox(height: 10),
+                    const LinearProgressIndicator(
+                      value: 0.7,
+                      backgroundColor: Colors.grey,
+                      color: Colors.red,
+                      minHeight: 10,
+                    ),
+                    const SizedBox(height: 30),
+                    const Text(
+                      "🏆 획득한 배지",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildBadge(Icons.star, "첫 답변", Colors.yellow),
+                        _buildBadge(
+                          Icons.local_fire_department,
+                          "핫플 마스터",
+                          Colors.red,
+                        ),
+                        _buildBadge(Icons.verified, "신뢰도 100%", Colors.green),
+                      ],
+                    ),
+                    const SizedBox(height: 40), // Spacer 대신 SizedBox
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text("🎟 보유한 응모권",
+                              style: TextStyle(fontSize: 16)),
+                          Text(
+                            "${user.tickets}장",
+                            style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const Text(
+                            "이번 주 1등 상품: 에어팟 프로 2",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // 로그아웃 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          FirebaseAuth.instance.signOut(); // Firebase 로그아웃
+                          // currentUser.value = null; // 리스너가 처리하므로 불필요하지만 명시적으로 해도 됨
+                        },
+                        child: const Text("로그아웃"),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Center(
+                        child: Text("문의: ecoguy0818@gmail.com",
+                            style:
+                                TextStyle(color: Colors.grey, fontSize: 12))),
+                    const SizedBox(height: 20),
                   ],
                 ),
-                const SizedBox(height: 40), // Spacer 대신 SizedBox
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text("🎟 보유한 응모권", style: TextStyle(fontSize: 16)),
-                      Text(
-                        "${user.tickets}장",
-                        style: const TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                      const Text(
-                        "이번 주 1등 상품: 에어팟 프로 2",
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 로그아웃 버튼
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      currentUser.value = null; // 로그아웃
-                    },
-                    child: const Text("로그아웃"),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Center(
-                    child: Text("문의: ecoguy0818@gmail.com",
-                        style: TextStyle(color: Colors.grey, fontSize: 12))),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
