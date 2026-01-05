@@ -104,14 +104,15 @@ class MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     // Auth 상태 변화 감지하여 즉시 지도 탭으로 이동 (Firestore 대기 시간 제거)
-    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user != null) {
-        // 이미 로그인 상태면 지도로 이동 (중복 호출 방지 로직 필요하면 추가)
-        setState(() {
-          _selectedIndex = 0;
-        });
-      }
-    });
+    // Auth 상태 변화 감지하여 즉시 지도 탭으로 이동 (Firestore 대기 시간 제거)
+    // _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+    //   if (user != null) {
+    //     // 이미 로그인 상태면 지도로 이동 (중복 호출 방지 로직 필요하면 추가)
+    //     setState(() {
+    //       _selectedIndex = 0;
+    //     });
+    //   }
+    // });
   }
 
   @override
