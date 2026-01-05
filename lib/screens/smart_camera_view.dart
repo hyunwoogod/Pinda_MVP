@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart'; // Add
 import '../services/face_blur_service.dart';
 
 class SmartCameraView extends StatefulWidget {
@@ -23,7 +24,22 @@ class _SmartCameraViewState extends State<SmartCameraView> {
   @override
   void initState() {
     super.initState();
-    _initCamera();
+    _checkPermissionAndInit();
+  }
+
+  Future<void> _checkPermissionAndInit() async {
+    // 1. 권한 확인 요청
+    final status = await Permission.camera.request();
+
+    if (status.isGranted) {
+      await _initCamera();
+    } else if (status.isPermanentlyDenied) {
+      // 설정으로 이동 유도
+      _showPermissionError("카메라 권한이 필요합니다. 설정에서 허용해주세요.");
+    } else {
+      // 거부됨
+      _showPermissionError("기능을 사용하려면 카메라 권한이 필요합니다.");
+    }
   }
 
   Future<void> _initCamera() async {
@@ -47,10 +63,34 @@ class _SmartCameraViewState extends State<SmartCameraView> {
             _isInit = true;
           });
         }
+      } else {
+        _showPermissionError("사용 가능한 카메라가 없습니다.");
       }
     } catch (e) {
       debugPrint("Camera Init Error: $e");
+      _showPermissionError("카메라 초기화 중 오류가 발생했습니다: $e");
     }
+  }
+
+  void _showPermissionError(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("알림"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // 닫기
+              Navigator.pop(context); // 카메라 화면 종료
+            },
+            child: const Text("확인"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
