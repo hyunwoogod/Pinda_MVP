@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import '../widgets/social_login_buttons.dart';
 import 'login_screen.dart';
 import '../widgets/naver_map_web.dart';
+import '../state/question_state.dart';
 
 class MyPageView extends StatelessWidget {
   const MyPageView({super.key});
@@ -161,6 +162,10 @@ class MyPageView extends StatelessWidget {
 
                     // 랭킹 섹션
                     RankingSection(user: user),
+                    const SizedBox(height: 30),
+
+                    // 내 질문 목록 섹션
+                    _MyQuestionHistory(nickname: user.nickname),
                     const SizedBox(height: 30),
 
                     const Text(
@@ -625,5 +630,136 @@ class RankingSection extends StatelessWidget {
       });
     }
     await batch.commit();
+  }
+}
+
+class _MyQuestionHistory extends StatelessWidget {
+  final String nickname;
+
+  const _MyQuestionHistory({required this.nickname});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<Question>>(
+      valueListenable: QuestionState(),
+      builder: (context, questions, child) {
+        // 내 닉네임과 작성자가 일치하는 질문 필터링
+        final myQuestions =
+            questions.where((q) => q.author == nickname).toList();
+
+        if (myQuestions.isEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "📜 내 질문 히스토리",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Text("아직 작성한 질문이 없습니다.",
+                      style: TextStyle(color: Colors.grey)),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "📜 내 질문 히스토리",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "${myQuestions.length}건",
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ListView.separated(
+              physics: const NeverScrollableScrollPhysics(), // 부모 스크롤 사용
+              shrinkWrap: true,
+              itemCount: myQuestions.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final q = myQuestions[index];
+                final isAnswered = q.comments.isNotEmpty;
+                final dateStr =
+                    "${q.createdAt.month}월 ${q.createdAt.day}일 ${q.createdAt.hour}:${q.createdAt.minute.toString().padLeft(2, '0')}";
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 3,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    title: Text(
+                      q.title.isNotEmpty ? q.title : q.content,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text(
+                          "$dateStr • ${q.category}",
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isAnswered ? Colors.green[50] : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isAnswered ? Colors.green : Colors.grey,
+                        ),
+                      ),
+                      child: Text(
+                        isAnswered ? "답변 완료" : "답변 대기",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isAnswered ? Colors.green : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }
