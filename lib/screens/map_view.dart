@@ -6,7 +6,8 @@ import '../models/user_model.dart';
 
 import 'dart:convert'; // Base64 decoding
 import 'dart:typed_data';
-import 'package:image_picker/image_picker.dart'; // Camera interaction
+// import 'package:image_picker/image_picker.dart'; // Deprecated for Answer
+import 'smart_camera_view.dart';
 import '../state/question_state.dart';
 
 // --- 1. 지도 뷰 (Map View) ---
@@ -520,52 +521,42 @@ class MapViewState extends State<MapView> {
   }
 
   Future<void> _startCameraAnswer(Question q) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 800,
-        imageQuality: 70,
-      );
-      if (image != null) {
-        if (mounted) _showPhotoCommentDialog(q, image);
-      }
-    } catch (e) {
-      debugPrint("Camera Error: $e");
+    // SmartCameraView로 이동하여 촬영 및 블러 처리된 이미지 받기
+    final Uint8List? processedImage = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SmartCameraView()),
+    );
+
+    if (processedImage != null && mounted) {
+      _showPhotoCommentDialog(q, processedImage);
     }
   }
 
-  // 사진 첨부 가능한 새로운 댓글 다이얼로그 (Camera Only)
-  void _showPhotoCommentDialog(Question q, XFile initialImage) async {
+  // 사진 첨부 가능한 새로운 댓글 다이얼로그 (Camera Only + AI Blur)
+  void _showPhotoCommentDialog(Question q, Uint8List initialImage) async {
     final commentController = TextEditingController();
-    XFile? _pickedImage = initialImage;
-    Uint8List? _webImageBytes = await initialImage.readAsBytes();
+    Uint8List? _webImageBytes = initialImage; // 이제 바로 바이트 사용
 
     if (!mounted) return;
 
     showDialog(
       context: context,
-      barrierDismissible: false, // 실수로 닫기 방지
+      barrierDismissible: false,
       builder: (context) {
         return StatefulBuilder(builder: (context, setState) {
-          // 다시 찍기 함수
+          // 다시 찍기 함수 (SmartCameraView 재호출)
           Future<void> _retakePhoto() async {
-            try {
-              final ImagePicker picker = ImagePicker();
-              final XFile? image = await picker.pickImage(
-                source: ImageSource.camera,
-                maxWidth: 800,
-                imageQuality: 70,
-              );
-              if (image != null) {
-                final bytes = await image.readAsBytes();
-                setState(() {
-                  _pickedImage = image;
-                  _webImageBytes = bytes;
-                });
-              }
-            } catch (e) {
-              debugPrint("Retake Error: $e");
+            // 현재 다이얼로그 숨기기 (임시) - 혹은 닫고 다시 열기
+            // 여기선 Navigator push가 다이얼로그 위로 올라오므로 그대로 호출
+            final Uint8List? processedImage = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SmartCameraView()),
+            );
+
+            if (processedImage != null) {
+              setState(() {
+                _webImageBytes = processedImage;
+              });
             }
           }
 
@@ -579,7 +570,7 @@ class MapViewState extends State<MapView> {
                 children: [
                   // 이미지 미리보기 영역
                   Container(
-                    height: 250, // 더 크게 표시
+                    height: 250,
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(12),
@@ -625,10 +616,10 @@ class MapViewState extends State<MapView> {
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    "📷 실시간으로 촬영된 사진만 인정됩니다.",
+                    "🤖 AI가 얼굴을 자동으로 블러 처리했습니다.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: Colors.red,
+                        color: Colors.green,
                         fontSize: 12,
                         fontWeight: FontWeight.bold),
                   ),
@@ -651,20 +642,17 @@ class MapViewState extends State<MapView> {
                   child: const Text("취소")),
               ElevatedButton(
                 onPressed: () async {
-                  if (_pickedImage == null) {
+                  if (_webImageBytes == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("사진 인증이 필요합니다.")),
                     );
                     return;
                   }
 
-                  String? base64Image;
-                  if (_webImageBytes != null) {
-                    base64Image = base64Encode(_webImageBytes!);
-                  }
+                  String base64Image = base64Encode(_webImageBytes!);
 
                   final text = commentController.text.trim().isEmpty
-                      ? "사진 인증 답변입니다." // 내용 없으면 기본 텍스트
+                      ? "사진 인증 답변입니다."
                       : commentController.text.trim();
 
                   final newComment = Comment(
