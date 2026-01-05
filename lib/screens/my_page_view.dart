@@ -5,7 +5,6 @@ import '../models/user_model.dart';
 import '../widgets/social_login_buttons.dart';
 import 'login_screen.dart';
 import '../widgets/naver_map_web.dart';
-import '../state/question_state.dart';
 
 class MyPageView extends StatelessWidget {
   const MyPageView({super.key});
@@ -239,64 +238,6 @@ class MyPageView extends StatelessWidget {
                                 TextStyle(color: Colors.grey, fontSize: 12))),
                     const SizedBox(height: 40),
 
-                    // 개발자 도구 (임시)
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      color: Colors.grey[200],
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("🛠 개발자 도구",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 5),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (context) => const Center(
-                                      child: CircularProgressIndicator()),
-                                );
-
-                                try {
-                                  // 전국 범위 모의 데이터 생성
-                                  await QuestionState()
-                                      .resetAndGenerateMockData();
-
-                                  if (context.mounted) {
-                                    Navigator.pop(context); // 로딩 닫기
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text(
-                                              "전국 범위의 예시 데이터를 완료했습니다! 🇰🇷")),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text("오류 발생: $e")),
-                                    );
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.refresh),
-                              label: const Text("전국 예시 데이터 생성"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const Text(
-                            "* 대한민국 전역에 약 200개의 예시 핀이 무작위로 생성됩니다.",
-                            style: TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
