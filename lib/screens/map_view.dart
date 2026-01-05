@@ -2,20 +2,23 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../widgets/naver_map_web.dart';
-import 'camera_screen.dart';
 import '../models/user_model.dart';
-import 'login_screen.dart';
+
+import 'dart:convert'; // Base64 decoding
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart'; // Camera interaction
 import '../state/question_state.dart';
 
 // --- 1. 지도 뷰 (Map View) ---
 class MapView extends StatefulWidget {
+  static final GlobalKey<MapViewState> globalKey = GlobalKey<MapViewState>();
   const MapView({super.key});
 
   @override
-  State<MapView> createState() => _MapViewState();
+  State<MapView> createState() => MapViewState();
 }
 
-class _MapViewState extends State<MapView> {
+class MapViewState extends State<MapView> {
   NaverMapWebController? _mapController;
 
   // 초기 카메라 위치 (서울 시청)
@@ -210,6 +213,29 @@ class _MapViewState extends State<MapView> {
                                         ],
                                       ),
                                       const SizedBox(height: 2),
+                                      if (c.imageBase64 != null) ...[
+                                        const SizedBox(height: 8),
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          child: Image.memory(
+                                            base64Decode(c.imageBase64!),
+                                            width: double.infinity,
+                                            height: 200,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              return Container(
+                                                  height: 200,
+                                                  color: Colors.grey[200],
+                                                  child: const Center(
+                                                      child: Icon(Icons.error,
+                                                          color: Colors.red)));
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
                                       Text(c.content),
                                     ],
                                   ),
@@ -279,9 +305,13 @@ class _MapViewState extends State<MapView> {
 
                     // 하단 답변하기 버튼 (UI유지)
                     const SizedBox(height: 20),
+                    const SizedBox(height: 20),
+                    // 수정된 답변하기 버튼 (다이얼로그 직접 호출)
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text("사진 찍고 답변하기"),
                         onPressed: () async {
                           // 로그인 체크
                           if (currentUser.value == null) {
@@ -289,23 +319,11 @@ class _MapViewState extends State<MapView> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("로그인이 필요한 서비스입니다.")),
                             );
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const LoginScreen()));
+                            Navigator.pop(context); // 바텀시트 닫기
                             return;
                           }
-
-                          Navigator.pop(context); // 시트 닫기
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const CameraScreen()),
-                          );
-
-                          if (result != null && result is String) {
-                            if (mounted) _showCommentInput(q, result);
-                          }
+                          // 바로 카메라 실행
+                          _startCameraAnswer(q);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
@@ -315,7 +333,6 @@ class _MapViewState extends State<MapView> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text("답변하기 (사진 촬영)"),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -464,6 +481,22 @@ class _MapViewState extends State<MapView> {
     );
   }
 
+  Future<void> openQuestion(Question q) async {
+    // 1. 카메라 이동 (줌 레벨 16으로 상세하게)
+    if (_mapController != null) {
+      _mapController!.moveCamera(q.latitude, q.longitude - 0.002,
+          zoom: 16); // 오프셋 적용하여 마커가 보이는 위치로
+    }
+    // 2. 약간의 딜레이 후 상세창 표시 (지도 이동 애니메이션 고려)
+    if (mounted) {
+      // 기존 모달이 열려있다면 닫기
+      if (Navigator.canPop(context)) {
+        // Navigator.pop(context); // 이 부분은 사이드 이펙트가 클 수 있어 보류 (다른 다이얼로그일 수 있음)
+      }
+      _showQuestionDetail(q);
+    }
+  }
+
   Future<void> _searchAddress(String query) async {
     if (query.isEmpty) return;
     try {
@@ -486,63 +519,177 @@ class _MapViewState extends State<MapView> {
     }
   }
 
-  void _showCommentInput(Question q, String imagePath) {
+  Future<void> _startCameraAnswer(Question q) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        imageQuality: 70,
+      );
+      if (image != null) {
+        if (mounted) _showPhotoCommentDialog(q, image);
+      }
+    } catch (e) {
+      debugPrint("Camera Error: $e");
+    }
+  }
+
+  // 사진 첨부 가능한 새로운 댓글 다이얼로그 (Camera Only)
+  void _showPhotoCommentDialog(Question q, XFile initialImage) async {
     final commentController = TextEditingController();
+    XFile? _pickedImage = initialImage;
+    Uint8List? _webImageBytes = await initialImage.readAsBytes();
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("답변 작성"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              height: 150,
-              width: double.infinity,
-              color: Colors.grey[300],
-              child: const Icon(Icons.image, size: 50, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: commentController,
-              decoration: const InputDecoration(
-                hintText: "상황을 설명해주세요",
-                border: OutlineInputBorder(),
+      barrierDismissible: false, // 실수로 닫기 방지
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setState) {
+          // 다시 찍기 함수
+          Future<void> _retakePhoto() async {
+            try {
+              final ImagePicker picker = ImagePicker();
+              final XFile? image = await picker.pickImage(
+                source: ImageSource.camera,
+                maxWidth: 800,
+                imageQuality: 70,
+              );
+              if (image != null) {
+                final bytes = await image.readAsBytes();
+                setState(() {
+                  _pickedImage = image;
+                  _webImageBytes = bytes;
+                });
+              }
+            } catch (e) {
+              debugPrint("Retake Error: $e");
+            }
+          }
+
+          return AlertDialog(
+            title: const Text("답변 인증"),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 이미지 미리보기 영역
+                  Container(
+                    height: 250, // 더 크게 표시
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(12),
+                      image: _webImageBytes != null
+                          ? DecorationImage(
+                              image: MemoryImage(_webImageBytes!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: Stack(
+                      children: [
+                        // 다시 찍기 버튼 (우측 상단)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: InkWell(
+                            onTap: _retakePhoto,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.refresh,
+                                      color: Colors.white, size: 16),
+                                  SizedBox(width: 4),
+                                  Text("다시 찍기",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "📷 실시간으로 촬영된 사진만 인정됩니다.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 15),
+                  TextField(
+                    controller: commentController,
+                    decoration: const InputDecoration(
+                      hintText: "상황을 설명해주세요 (예: 지금 여기 자리 있어요!)",
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.all(12),
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
               ),
-              maxLines: 3,
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text("취소")),
-          ElevatedButton(
-            onPressed: () {
-              if (commentController.text.isEmpty) return;
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("취소")),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_pickedImage == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("사진 인증이 필요합니다.")),
+                    );
+                    return;
+                  }
 
-              final newComment = Comment(
-                id: "c_${DateTime.now().millisecondsSinceEpoch}",
-                content: commentController.text,
-                author: currentUser.value?.nickname ?? "익명",
-                createdAt: DateTime.now(),
-              );
+                  String? base64Image;
+                  if (_webImageBytes != null) {
+                    base64Image = base64Encode(_webImageBytes!);
+                  }
 
-              QuestionState().addComment(q.id, newComment);
-              Navigator.pop(context);
+                  final text = commentController.text.trim().isEmpty
+                      ? "사진 인증 답변입니다." // 내용 없으면 기본 텍스트
+                      : commentController.text.trim();
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("답변이 등록되었습니다!")),
-              );
+                  final newComment = Comment(
+                    id: "c_${DateTime.now().millisecondsSinceEpoch}",
+                    content: text,
+                    author: currentUser.value?.nickname ?? "익명",
+                    createdAt: DateTime.now(),
+                    imageBase64: base64Image,
+                  );
 
-              // 갱신된 정보로 다시 상세창 열기
-              final updatedQ = QuestionState()
-                  .value
-                  .firstWhere((e) => e.id == q.id, orElse: () => q);
-              _showQuestionDetail(updatedQ);
-            },
-            child: const Text("등록"),
-          ),
-        ],
-      ),
+                  await QuestionState().addComment(q.id, newComment);
+                  if (context.mounted) Navigator.pop(context);
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("인증 답변이 등록되었습니다! 📸")),
+                    );
+                  }
+                },
+                child: const Text("인증 완료"),
+              ),
+            ],
+          );
+        });
+      },
     );
   }
 }

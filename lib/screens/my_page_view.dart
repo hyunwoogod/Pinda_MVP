@@ -6,6 +6,7 @@ import '../widgets/social_login_buttons.dart';
 import 'login_screen.dart';
 import '../widgets/naver_map_web.dart';
 import '../state/question_state.dart';
+import '../main.dart';
 
 class MyPageView extends StatelessWidget {
   const MyPageView({super.key});
@@ -753,6 +754,9 @@ class _MyQuestionHistory extends StatelessWidget {
                         ),
                       ),
                     ),
+                    onTap: () {
+                      MainScreen.globalKey.currentState?.navigateToQuestion(q);
+                    },
                   ),
                 );
               },

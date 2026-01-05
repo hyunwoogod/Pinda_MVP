@@ -11,6 +11,7 @@ import 'screens/question_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
 import 'models/user_model.dart'; // UserModel Import
+import 'state/question_state.dart'; // Question Type
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,13 +75,14 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         fontFamily: 'Pretendard',
       ),
-      home: const MainScreen(),
+      home: MainScreen(key: MainScreen.globalKey),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class MainScreen extends StatefulWidget {
+  static final GlobalKey<MainScreenState> globalKey = GlobalKey();
   const MainScreen({super.key});
 
   @override
@@ -91,11 +93,11 @@ class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   // 탭별 화면 정의
-  final List<Widget> _pages = const [
-    MapView(), // 0: 지도 (홈)
-    QuestionView(), // 1: 질문
-    ApplyView(), // 2: 응모
-    MyPageView(), // 3: 마이페이지
+  final List<Widget> _pages = [
+    MapView(key: MapView.globalKey), // 0: 지도 (홈)
+    const QuestionView(), // 1: 질문
+    const ApplyView(), // 2: 응모
+    const MyPageView(), // 3: 마이페이지
   ];
 
   StreamSubscription<User?>? _authSubscription;
@@ -126,6 +128,16 @@ class MainScreenState extends State<MainScreen> {
   void changeTab(int index) {
     setState(() {
       _selectedIndex = index;
+    });
+  }
+
+  void navigateToQuestion(Question q) {
+    setState(() {
+      _selectedIndex = 0; // 지도 탭으로 이동
+    });
+    // 지도 탭이 활성화된 후 상세창 열기
+    Future.delayed(const Duration(milliseconds: 100), () {
+      MapView.globalKey.currentState?.openQuestion(q);
     });
   }
 

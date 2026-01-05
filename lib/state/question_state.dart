@@ -6,12 +6,14 @@ class Comment {
   final String content;
   final String author;
   final DateTime createdAt;
+  final String? imageBase64; // 이미지(Base64) 추가
 
   Comment({
     required this.id,
     required this.content,
     required this.author,
     required this.createdAt,
+    this.imageBase64,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +22,7 @@ class Comment {
       'content': content,
       'author': author,
       'createdAt': Timestamp.fromDate(createdAt),
+      'imageBase64': imageBase64,
     };
   }
 
@@ -29,6 +32,7 @@ class Comment {
       content: map['content'] ?? '',
       author: map['author'] ?? 'Unknown',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      imageBase64: map['imageBase64'],
     );
   }
 }
