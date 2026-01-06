@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pinda',
+      title: '혹시(HOXY)',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
         useMaterial3: true,
@@ -158,7 +158,7 @@ class MainScreenState extends State<MainScreen> {
             Icon(Icons.location_on, color: Colors.red),
             SizedBox(width: 8),
             Text(
-              "핀다(Pinda)",
+              "혹시(HOXY)",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],

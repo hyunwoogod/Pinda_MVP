@@ -135,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const Icon(Icons.location_on, size: 80, color: Colors.red),
             const SizedBox(height: 20),
             const Text(
-              "핀다(Pinda)",
+              "혹시(HOXY)",
               style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
