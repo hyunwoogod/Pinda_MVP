@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../widgets/naver_map_web.dart';
 import '../models/user_model.dart';
+import '../utils/location_utils.dart'; // Import LocationUtils
 
 import 'dart:convert'; // Base64 decoding
 import 'dart:typed_data';
@@ -98,6 +99,17 @@ class MapViewState extends State<MapView> {
   Future<void> _moveToCurrentLocation() async {
     try {
       Position position = await Geolocator.getCurrentPosition();
+
+      // 서울 지역 체크
+      if (!LocationUtils.isInSeoul(position.latitude, position.longitude)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('현재 서울 지역 내에서만 서비스를 이용할 수 있습니다.')),
+          );
+        }
+        return; // 이동 안함
+      }
+
       setState(() {
         _currentLat = position.latitude;
         _currentLng = position.longitude;
@@ -533,6 +545,17 @@ class MapViewState extends State<MapView> {
 
       if (results.isNotEmpty) {
         final result = results.first;
+
+        // 서울 지역 체크
+        if (!LocationUtils.isInSeoul(result.latitude, result.longitude)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('서울 지역 내의 주소만 검색할 수 있습니다.')),
+            );
+          }
+          return;
+        }
+
         // 카메라 이동
         _mapController?.moveCamera(result.latitude, result.longitude, zoom: 16);
       } else {

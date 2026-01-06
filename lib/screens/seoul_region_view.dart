@@ -57,26 +57,15 @@ class SeoulRegionViewState extends State<SeoulRegionView> {
       return NaverMapPolygon(
         id: district.id,
         coordinates: district.boundary,
-        color: isSelected
-            ? Colors.red.withOpacity(0.4) // 선택됨: 진한 빨강 반투명
-            : Colors.blue.withOpacity(0.2), // 기본: 파랑 반투명
-        strokeColor: isSelected ? Colors.red : Colors.blue,
-        strokeWidth: isSelected ? 3 : 1,
+        // 선택됨: 파랑 테두리 굵게, 내부 투명 (또는 아주 연한 파랑)
+        // 안선택됨: 회색 테두리 얇게, 내부 아주 연한 회색/파랑
+        color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+        strokeColor: isSelected ? Colors.blue[700]! : Colors.grey[400]!,
+        strokeWidth: isSelected ? 4 : 2,
+        zIndex: isSelected ? 2 : 1, // 선택된 구 > 일반 구
         onTap: () => _onPolygonTapped(district),
       );
     }).toList();
-
-    // 외곽선 폴리곤 추가 (맨 뒤에 추가하여 위에 그림)
-    polygons.add(
-      NaverMapPolygon(
-        id: 'seoul_outline',
-        coordinates: seoulOutline,
-        color: Colors.transparent, // 내부 투명
-        strokeColor: Colors.red, // 빨간 실선
-        strokeWidth: 3, // 두께
-        onTap: null, // 클릭 이벤트 없음
-      ),
-    );
 
     return Scaffold(
       appBar: AppBar(

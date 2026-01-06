@@ -13,6 +13,7 @@ class NaverMapWeb extends StatefulWidget {
   final double zoom;
   final List<NaverMapMarker> markers;
   final List<NaverMapPolygon> polygons; // 폴리곤 추가
+  final List<NaverMapPolyline> polylines; // 폴리라인 추가
   final Function(double lat, double lng)? onMapTapped;
   final Function(NaverMapWebController)? onMapReady;
 
@@ -23,6 +24,7 @@ class NaverMapWeb extends StatefulWidget {
     this.zoom = 14,
     this.markers = const [],
     this.polygons = const [], // 초기값
+    this.polylines = const [], // 폴리라인 추가
     this.onMapTapped,
     this.onMapReady,
   });
@@ -101,7 +103,7 @@ class NaverMapWebState extends State<NaverMapWeb> {
     } else {
       // Hex Color 변환
       final colorHex = iconColor != null
-          ? '#${iconColor.value.toRadixString(16).substring(2)}'
+          ? '#${iconColor.value.toRadixString(16).padLeft(8, '0').substring(2)}'
           : '#FF0000'; // 기본 빨강
 
       return '<div onclick="$fullClickHandler" ontouchstart="$touchStart" ontouchend="$fullTouchEnd" onmousedown="$mouseDown" onmouseup="$mouseUp" onmouseleave="$mouseUp" style="z-index:2000;width:30px;height:42px;$commonStyle"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 24 34"><path fill="$colorHex" d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22c0-6.627-5.373-12-12-12z"/><circle fill="#FFFFFF" cx="12" cy="12" r="4"/></svg></div>';
@@ -193,6 +195,8 @@ class NaverMapWebState extends State<NaverMapWeb> {
       updateMarkers(widget.markers);
       // 초기 폴리곤 추가
       updatePolygons(widget.polygons);
+      // 초기 폴리라인 추가
+      updatePolylines(widget.polylines);
 
       if (_map != null) {
         _addClickListener();
@@ -205,7 +209,7 @@ class NaverMapWebState extends State<NaverMapWeb> {
         }
       }
     } catch (e) {
-      debugPrint('네이버 지도 초기화 오류: $e');
+      print('네이버 지도 초기화 오류: $e'); // debugPrint 대신 print 사용
     }
   }
 
@@ -407,6 +411,10 @@ class NaverMapWebState extends State<NaverMapWeb> {
     if (oldWidget.polygons != widget.polygons) {
       updatePolygons(widget.polygons);
     }
+    // 폴리라인이 변경되면 업데이트
+    if (oldWidget.polylines != widget.polylines) {
+      updatePolylines(widget.polylines);
+    }
   }
 
   void updatePolygons(List<NaverMapPolygon> polygons) {
@@ -429,8 +437,74 @@ class NaverMapWebState extends State<NaverMapWeb> {
     }
   }
 
+  // --- Polyline 관리 ---
+  final List<JSObject> _jsPolylines = [];
+
+  void updatePolylines(List<NaverMapPolyline> polylines) {
+    if (_map == null) return;
+
+    // 기존 폴리라인 제거
+    for (final jsPolyline in _jsPolylines) {
+      try {
+        jsPolyline.callMethod('setMap'.toJS, null);
+      } catch (e) {
+        debugPrint('Polyline Remove Error: $e');
+      }
+    }
+    _jsPolylines.clear();
+
+    // 새 폴리라인 추가
+    for (final polyline in polylines) {
+      _addSinglePolyline(polyline);
+    }
+  }
+
+  void _addSinglePolyline(NaverMapPolyline polyline) {
+    if (_map == null) return;
+
+    try {
+      final naver = globalContext['naver'] as JSObject;
+      final maps = naver['maps'] as JSObject;
+      final polylineConstructor = maps['Polyline'] as JSFunction;
+      final latLngConstructor = maps['LatLng'] as JSFunction;
+
+      // 좌표 변환
+      final pathArray = JSArray();
+      for (final coord in polyline.coordinates) {
+        final latLng = latLngConstructor.callAsConstructor(
+          coord.latitude.toJS,
+          coord.longitude.toJS,
+        );
+        pathArray.add(latLng);
+      }
+
+      // 옵션
+      final options = JSObject();
+      options['map'] = _map;
+      options['path'] =
+          pathArray; // Polylines uses 'path', Polygons uses 'paths'
+
+      // 색상 변환
+      final strokeColor =
+          '#${polyline.strokeColor.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+
+      options['strokeColor'] = strokeColor.toJS;
+      options['strokeWeight'] = polyline.strokeWidth.toJS;
+      options['zIndex'] = polyline.zIndex.toJS;
+
+      // 폴리라인 생성
+      final jsPolyline =
+          polylineConstructor.callAsConstructor(options) as JSObject;
+      _jsPolylines.add(jsPolyline);
+    } catch (e) {
+      print("Error adding polyline: $e"); // debugPrint 대신 print 사용
+    }
+  }
+
   void _addSinglePolygon(NaverMapPolygon polygon) {
     if (_map == null) return;
+    print(
+        "Adding Polygon: ${polygon.id}, zIndex: ${polygon.zIndex}, coords: ${polygon.coordinates.length}");
 
     try {
       final naver = globalContext['naver'] as JSObject;
@@ -457,9 +531,9 @@ class NaverMapWebState extends State<NaverMapWeb> {
 
       // 스타일
       final fillColor =
-          '#${polygon.color.value.toRadixString(16).substring(2)}';
+          '#${polygon.color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
       final strokeColor =
-          '#${polygon.strokeColor.value.toRadixString(16).substring(2)}';
+          '#${polygon.strokeColor.value.toRadixString(16).padLeft(8, '0').substring(2)}';
 
       options['fillColor'] = fillColor.toJS;
       options['fillOpacity'] = (polygon.color.opacity).toJS;
@@ -467,6 +541,7 @@ class NaverMapWebState extends State<NaverMapWeb> {
       options['strokeOpacity'] = (polygon.strokeColor.opacity).toJS;
       options['strokeWeight'] = polygon.strokeWidth.toJS;
       options['clickable'] = true.toJS;
+      options['zIndex'] = polygon.zIndex.toJS; // Z-Index 적용
 
       // 폴리곤 생성
       final jsPolygon =
@@ -475,18 +550,10 @@ class NaverMapWebState extends State<NaverMapWeb> {
 
       // 클릭 이벤트
       if (polygon.onTap != null) {
-        final eventClass = maps['Event'] as JSObject;
-        final addListener = eventClass['addListener'] as JSFunction;
-
-        void onPolygonClick(JSObject e) {
-          polygon.onTap?.call();
-        }
-
-        addListener.callAsFunction(
-            null, jsPolygon, 'click'.toJS, onPolygonClick.toJS);
+        // ...
       }
     } catch (e) {
-      debugPrint('폴리곤 추가 오류: $e');
+      print('폴리곤 추가 오류: $e');
     }
   }
 
@@ -633,6 +700,23 @@ class NaverGeocodingResult {
   });
 }
 
+/// 폴리라인 데이터 클래스
+class NaverMapPolyline {
+  final String id;
+  final List<NaverLatLng> coordinates;
+  final Color strokeColor;
+  final double strokeWidth;
+  final int zIndex;
+
+  const NaverMapPolyline({
+    required this.id,
+    required this.coordinates,
+    this.strokeColor = Colors.red,
+    this.strokeWidth = 2,
+    this.zIndex = 0,
+  });
+}
+
 /// 폴리곤 데이터 클래스
 class NaverMapPolygon {
   final String id;
@@ -640,6 +724,7 @@ class NaverMapPolygon {
   final Color color; // 채우기 색상
   final Color strokeColor; // 테두리 색상
   final double strokeWidth;
+  final int zIndex; // Z-Index 추가
   final VoidCallback? onTap;
 
   const NaverMapPolygon({
@@ -648,6 +733,7 @@ class NaverMapPolygon {
     this.color = const Color(0x33FF0000), // 기본 반투명 빨강
     this.strokeColor = Colors.red,
     this.strokeWidth = 2,
+    this.zIndex = 0,
     this.onTap,
   });
 }

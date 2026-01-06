@@ -181,16 +181,31 @@ final List<SeoulDistrict> seoulDistricts = [
       boundary: _createBox(37.6063, 127.0926, 0.012)),
 ];
 
-// 서울시 대략적인 외곽 경계 (단순화된 폴리곤)
+// 서울시 외곽 경계 (상세 좌표 - 시계 방향)
 final List<NaverLatLng> seoulOutline = [
-  const NaverLatLng(37.7015, 127.0450), // 도봉구 북단
-  const NaverLatLng(37.6530, 127.1150), // 노원구 동단
-  const NaverLatLng(37.5670, 127.1850), // 강동구 동단
-  const NaverLatLng(37.4640, 127.1400), // 송파구 남단
-  const NaverLatLng(37.4350, 127.0600), // 서초구 남단
-  const NaverLatLng(37.4350, 126.9600), // 관악구 남단
-  const NaverLatLng(37.4580, 126.8200), // 구로/금천 서남단
-  const NaverLatLng(37.5850, 126.7650), // 강서구 서단
-  const NaverLatLng(37.6600, 126.9000), // 은평구 북단
-  const NaverLatLng(37.7015, 127.0450), // 시작점으로 닫기
+  const NaverLatLng(37.6915, 127.0425), // 도봉구 북단
+  const NaverLatLng(37.6850, 127.0750),
+  const NaverLatLng(37.6450, 127.1050), // 노원구 동단
+  const NaverLatLng(37.6200, 127.1300),
+  const NaverLatLng(37.5750, 127.1750), // 강동구 동단
+  const NaverLatLng(37.5550, 127.1850),
+  const NaverLatLng(37.5350, 127.1650),
+  const NaverLatLng(37.4950, 127.1550), // 송파구 동단
+  const NaverLatLng(37.4650, 127.1350),
+  const NaverLatLng(37.4500, 127.0850),
+  const NaverLatLng(37.4300, 127.0650), // 서초구 남단 (청계산)
+  const NaverLatLng(37.4250, 127.0150),
+  const NaverLatLng(37.4350, 126.9850), // 관악구 남단 (관악산)
+  const NaverLatLng(37.4350, 126.9350),
+  const NaverLatLng(37.4500, 126.9000), // 금천구 남단
+  const NaverLatLng(37.4800, 126.8500),
+  const NaverLatLng(37.5000, 126.8200), // 구로구 서단
+  const NaverLatLng(37.5400, 126.7900),
+  const NaverLatLng(37.5850, 126.7650), // 강서구 서단 (김포공항 서쪽)
+  const NaverLatLng(37.6150, 126.8100),
+  const NaverLatLng(37.6450, 126.8500),
+  const NaverLatLng(37.6650, 126.9150), // 은평구 북단
+  const NaverLatLng(37.6850, 126.9650),
+  const NaverLatLng(37.7000, 127.0150), // 북한산
+  const NaverLatLng(37.6915, 127.0425), // 시작점으로 닫기
 ];

@@ -7,7 +7,7 @@ import 'screens/apply_view.dart';
 import 'screens/map_view.dart';
 import 'screens/my_page_view.dart';
 import 'screens/question_view.dart';
-import 'screens/seoul_region_view.dart'; // Add Import
+// import 'screens/seoul_region_view.dart'; // Removed
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
@@ -96,7 +96,7 @@ class MainScreenState extends State<MainScreen> {
   // 탭별 화면 정의
   // 탭별 화면 정의
   final List<Widget> _pages = [
-    const SeoulRegionView(), // 0: 서울 지도 선택 (기존 MapView 대체)
+    const MapView(), // 0: 지도 (기존 MapView 복구)
     const QuestionView(), // 1: 질문
     const ApplyView(), // 2: 응모
     const MyPageView(), // 3: 마이페이지
