@@ -1,11 +1,11 @@
 {
-    "name": "NowHere",
-    "short_name": "NowHere",
+    "name": "혹시(HOXY)",
+    "short_name": "HOXY",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "혹시(HOXY) - 위치 기반 Q&A",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
