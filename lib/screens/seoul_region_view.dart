@@ -66,6 +66,18 @@ class SeoulRegionViewState extends State<SeoulRegionView> {
       );
     }).toList();
 
+    // 외곽선 폴리곤 추가 (맨 뒤에 추가하여 위에 그림)
+    polygons.add(
+      NaverMapPolygon(
+        id: 'seoul_outline',
+        coordinates: seoulOutline,
+        color: Colors.transparent, // 내부 투명
+        strokeColor: Colors.red, // 빨간 실선
+        strokeWidth: 3, // 두께
+        onTap: null, // 클릭 이벤트 없음
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("서울 지도 (구 선택)"), // 임시 타이틀, MainScreen에서 덮어씌워질 수 있음

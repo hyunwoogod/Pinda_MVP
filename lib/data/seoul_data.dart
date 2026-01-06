@@ -180,3 +180,17 @@ final List<SeoulDistrict> seoulDistricts = [
       centerLng: 127.0926,
       boundary: _createBox(37.6063, 127.0926, 0.012)),
 ];
+
+// 서울시 대략적인 외곽 경계 (단순화된 폴리곤)
+final List<NaverLatLng> seoulOutline = [
+  const NaverLatLng(37.7015, 127.0450), // 도봉구 북단
+  const NaverLatLng(37.6530, 127.1150), // 노원구 동단
+  const NaverLatLng(37.5670, 127.1850), // 강동구 동단
+  const NaverLatLng(37.4640, 127.1400), // 송파구 남단
+  const NaverLatLng(37.4350, 127.0600), // 서초구 남단
+  const NaverLatLng(37.4350, 126.9600), // 관악구 남단
+  const NaverLatLng(37.4580, 126.8200), // 구로/금천 서남단
+  const NaverLatLng(37.5850, 126.7650), // 강서구 서단
+  const NaverLatLng(37.6600, 126.9000), // 은평구 북단
+  const NaverLatLng(37.7015, 127.0450), // 시작점으로 닫기
+];
