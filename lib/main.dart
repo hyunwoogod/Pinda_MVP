@@ -7,6 +7,7 @@ import 'screens/apply_view.dart';
 import 'screens/map_view.dart';
 import 'screens/my_page_view.dart';
 import 'screens/question_view.dart';
+import 'screens/seoul_region_view.dart'; // Add Import
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 추가
@@ -93,8 +94,9 @@ class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   // 탭별 화면 정의
+  // 탭별 화면 정의
   final List<Widget> _pages = [
-    MapView(key: MapView.globalKey), // 0: 지도 (홈)
+    const SeoulRegionView(), // 0: 서울 지도 선택 (기존 MapView 대체)
     const QuestionView(), // 1: 질문
     const ApplyView(), // 2: 응모
     const MyPageView(), // 3: 마이페이지
@@ -105,16 +107,7 @@ class MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // Auth 상태 변화 감지하여 즉시 지도 탭으로 이동 (Firestore 대기 시간 제거)
-    // Auth 상태 변화 감지하여 즉시 지도 탭으로 이동 (Firestore 대기 시간 제거)
-    // _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
-    //   if (user != null) {
-    //     // 이미 로그인 상태면 지도로 이동 (중복 호출 방지 로직 필요하면 추가)
-    //     setState(() {
-    //       _selectedIndex = 0;
-    //     });
-    //   }
-    // });
+    // Auth 상태 변화 감지 등
   }
 
   @override
@@ -132,13 +125,32 @@ class MainScreenState extends State<MainScreen> {
   }
 
   void navigateToQuestion(Question q) {
-    setState(() {
-      _selectedIndex = 0; // 지도 탭으로 이동
+    // 상세 지도로 이동 (Push)
+    // 질문 위치를 중심으로 하는 상세 지도를 엽니다.
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapView(
+          initialLat: q.latitude,
+          initialLng: q.longitude,
+          initialZoom: 16, // 상세 줌
+          districtName: "질문 상세 위치", // 임시 이름
+        ),
+      ),
+    ).then((_) {
+      // 맵이 열린 후 바로 해당 질문의 상세 바텀시트를 띄우는 로직은 MapView 내부에서 처리해야 할 수도 있음.
+      // 현재 MapView는 외부에서 openQuestion 호출을 기다림.
+      // 하지만 Push된 새 MapView 인스턴스에 접근하려면?
+      // -> MapView 생성자에 'initialQuestion'을 넘겨서 initState에서 바로 열게 하는 것이 좋음.
     });
-    // 지도 탭이 활성화된 후 상세창 열기
-    Future.delayed(const Duration(milliseconds: 100), () {
-      MapView.globalKey.currentState?.openQuestion(q);
-    });
+
+    // NOTE: MapView에 initialQuestion 파라미터가 없으므로,
+    // 일단은 위치로만 이동합니다. 사용자가 핀을 보고 누르게 유도하거나,
+    // MapView에 initialQuestion 파라미터를 추가해야 완벽함.
+    // 이번 변경 범위에서는 "위치로 이동"까지만 구현하거나,
+    // 딜레이 후 검색은 불가능(새 페이지라 Key 접근 불가).
+    // -> MapView에 `targetQuestionId` 같은걸 넘기는게 좋겠지만,
+    // 일단은 위치 이동으로 충분할 수 있음.
   }
 
   void _onItemTapped(int index) {

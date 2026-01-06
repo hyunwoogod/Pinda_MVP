@@ -12,6 +12,7 @@ class NaverMapWeb extends StatefulWidget {
   final double longitude;
   final double zoom;
   final List<NaverMapMarker> markers;
+  final List<NaverMapPolygon> polygons; // 폴리곤 추가
   final Function(double lat, double lng)? onMapTapped;
   final Function(NaverMapWebController)? onMapReady;
 
@@ -21,6 +22,7 @@ class NaverMapWeb extends StatefulWidget {
     required this.longitude,
     this.zoom = 14,
     this.markers = const [],
+    this.polygons = const [], // 초기값
     this.onMapTapped,
     this.onMapReady,
   });
@@ -34,6 +36,7 @@ class NaverMapWebState extends State<NaverMapWeb> {
   JSObject? _map;
   JSObject? _resizeObserver;
   final List<JSObject> _jsMarkers = [];
+  final List<JSObject> _jsPolygons = []; // JS 폴리곤 객체들
 
   JSFunction? _onMarkerTapJs;
   DateTime? _lastTapTime;
@@ -188,10 +191,13 @@ class NaverMapWebState extends State<NaverMapWeb> {
 
       // 초기 마커 추가
       updateMarkers(widget.markers);
+      // 초기 폴리곤 추가
+      updatePolygons(widget.polygons);
 
       if (_map != null) {
         _addClickListener();
-        _addMarkers();
+        // _addMarkers(); // updateMarkers가 이미 처리함
+        // _addPolygons(); // updatePolygons가 이미 처리함
 
         // 콜백 호출
         if (widget.onMapReady != null) {
@@ -397,6 +403,91 @@ class NaverMapWebState extends State<NaverMapWeb> {
     if (oldWidget.markers != widget.markers) {
       updateMarkers(widget.markers);
     }
+    // 폴리곤이 변경되면 업데이트
+    if (oldWidget.polygons != widget.polygons) {
+      updatePolygons(widget.polygons);
+    }
+  }
+
+  void updatePolygons(List<NaverMapPolygon> polygons) {
+    if (_map == null) return;
+
+    // 기존 폴리곤 제거
+    for (final polygon in _jsPolygons) {
+      try {
+        final setMap = polygon['setMap'] as JSFunction;
+        setMap.callAsFunction(polygon, null);
+      } catch (e) {
+        debugPrint('폴리곤 제거 오류: $e');
+      }
+    }
+    _jsPolygons.clear();
+
+    // 새 폴리곤 추가
+    for (final polygon in polygons) {
+      _addSinglePolygon(polygon);
+    }
+  }
+
+  void _addSinglePolygon(NaverMapPolygon polygon) {
+    if (_map == null) return;
+
+    try {
+      final naver = globalContext['naver'] as JSObject;
+      final maps = naver['maps'] as JSObject;
+      final polygonConstructor = maps['Polygon'] as JSFunction;
+      final latLngConstructor = maps['LatLng'] as JSFunction;
+
+      // 좌표 리스트 변환 JSArray<JSObject> (LatLng[])
+      final pathArray = JSArray();
+      for (final coord in polygon.coordinates) {
+        final latLng = latLngConstructor.callAsConstructor(
+          coord.latitude.toJS,
+          coord.longitude.toJS,
+        );
+        pathArray.add(latLng);
+      }
+
+      // 옵션 생성
+      final options = JSObject();
+      options['map'] = _map;
+      options['paths'] = JSArray()
+        ..add(
+            pathArray); // Paths is Array of Array (for holes) or Array of LatLng
+
+      // 스타일
+      final fillColor =
+          '#${polygon.color.value.toRadixString(16).substring(2)}';
+      final strokeColor =
+          '#${polygon.strokeColor.value.toRadixString(16).substring(2)}';
+
+      options['fillColor'] = fillColor.toJS;
+      options['fillOpacity'] = (polygon.color.opacity).toJS;
+      options['strokeColor'] = strokeColor.toJS;
+      options['strokeOpacity'] = (polygon.strokeColor.opacity).toJS;
+      options['strokeWeight'] = polygon.strokeWidth.toJS;
+      options['clickable'] = true.toJS;
+
+      // 폴리곤 생성
+      final jsPolygon =
+          polygonConstructor.callAsConstructor(options) as JSObject;
+      _jsPolygons.add(jsPolygon);
+
+      // 클릭 이벤트
+      if (polygon.onTap != null) {
+        final eventClass = maps['Event'] as JSObject;
+        final addListener = eventClass['addListener'] as JSFunction;
+
+        void onPolygonClick(JSObject e) {
+          polygon.onTap?.call();
+        }
+
+        addListener.callAsFunction(
+            null, jsPolygon, 'click'.toJS, onPolygonClick.toJS);
+      }
+    } catch (e) {
+      debugPrint('폴리곤 추가 오류: $e');
+    }
   }
 
   @override
@@ -540,4 +631,29 @@ class NaverGeocodingResult {
     required this.latitude,
     required this.longitude,
   });
+}
+
+/// 폴리곤 데이터 클래스
+class NaverMapPolygon {
+  final String id;
+  final List<NaverLatLng> coordinates; // 좌표 리스트
+  final Color color; // 채우기 색상
+  final Color strokeColor; // 테두리 색상
+  final double strokeWidth;
+  final VoidCallback? onTap;
+
+  const NaverMapPolygon({
+    required this.id,
+    required this.coordinates,
+    this.color = const Color(0x33FF0000), // 기본 반투명 빨강
+    this.strokeColor = Colors.red,
+    this.strokeWidth = 2,
+    this.onTap,
+  });
+}
+
+class NaverLatLng {
+  final double latitude;
+  final double longitude;
+  const NaverLatLng(this.latitude, this.longitude);
 }

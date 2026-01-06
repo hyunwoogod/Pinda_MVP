@@ -13,7 +13,20 @@ import '../state/question_state.dart';
 // --- 1. 지도 뷰 (Map View) ---
 class MapView extends StatefulWidget {
   static final GlobalKey<MapViewState> globalKey = GlobalKey<MapViewState>();
-  const MapView({super.key});
+
+  // 외부에서 초기 위치 지정 가능하도록 변경
+  final double? initialLat;
+  final double? initialLng;
+  final double initialZoom;
+  final String? districtName;
+
+  const MapView({
+    super.key,
+    this.initialLat,
+    this.initialLng,
+    this.initialZoom = 14,
+    this.districtName,
+  });
 
   @override
   State<MapView> createState() => MapViewState();
@@ -22,9 +35,10 @@ class MapView extends StatefulWidget {
 class MapViewState extends State<MapView> {
   NaverMapWebController? _mapController;
 
-  // 초기 카메라 위치 (서울 시청)
-  final double _initialLat = 37.5665;
-  final double _initialLng = 126.9780;
+  // 초기 카메라 위치 (서울 시청 기본값)
+  late double _initialLat;
+  late double _initialLng;
+  late double _initialZoom;
 
   double? _currentLat;
   double? _currentLng;
@@ -33,6 +47,11 @@ class MapViewState extends State<MapView> {
   @override
   void initState() {
     super.initState();
+    // 초기값 설정
+    _initialLat = widget.initialLat ?? 37.5665;
+    _initialLng = widget.initialLng ?? 126.9780;
+    _initialZoom = widget.initialZoom;
+
     _checkPermission();
     QuestionState().addListener(_onQuestionsChanged);
     // 30초마다 화면 갱신 (마커 타이머 업데이트)
@@ -351,6 +370,14 @@ class MapViewState extends State<MapView> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false, // 키보드 올라와도 맵 크기 줄어들지 않게 고정
+      appBar: widget.districtName != null
+          ? AppBar(
+              title: Text("${widget.districtName} 상세 지도"),
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              elevation: 0,
+            )
+          : null, // 메인 탭일 때는 상위에서 처리하거나 없음
       body: Stack(
         children: [
           SizedBox.expand(
@@ -360,7 +387,7 @@ class MapViewState extends State<MapView> {
                 return NaverMapWeb(
                   latitude: _initialLat,
                   longitude: _initialLng,
-                  zoom: 14,
+                  zoom: _initialZoom,
                   markers: [
                     ...questions.map((q) {
                       String caption = q.category;
